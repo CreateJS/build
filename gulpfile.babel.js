@@ -46,13 +46,18 @@ function getFile (path) {
   return fs.readFileSync(path, { encoding: 'utf-8' });
 }
 
+// return JSON read from a file
+function readJSON (path) {
+  return JSON.parse(getFile(path));
+}
+
 // cwd will always be the createjs dir
 const cwd = process.cwd();
 // figure out of we're calling from a lib or directly
 const relative = /node_modules/.test(cwd) ? "../../" : "./";
 // get the relative package and the universal config (overwritten by the local config)
 const pkg = JSON.parse(getFile(`${relative}package.json`));
-const config = defaults(JSON.parse(getFile("./config.local.json")), JSON.parse(getFile("./config.json"));
+const config = defaults(readJSON("./config.local.json"), readJSON("./config.json"));
 // quickrefs
 const activeLib = pkg.name;
 const isCombined = activeLib === "createjs";
