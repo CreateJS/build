@@ -1,8 +1,9 @@
-node_modules/
-config.local.json
-
 .DS_Store
-.idea
-.sass-cache
-cdn/build
-cdn/styles/styles.css
+libs/
+node_modules/
+.idea/
+*.sublime-project
+*.sublime-workspace
+config.local.json
+*[\<\>\:\"\/\\\|\?\*]*
+npm-debug.log

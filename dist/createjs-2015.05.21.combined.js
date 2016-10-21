@@ -44,7 +44,7 @@ this.createjs = this.createjs||{};
  *
  * 	function MySubClass() {}
  * 	createjs.extend(MySubClass, MySuperClass);
- * 	MySubClass.prototype.doSomething = function() { }
+ * 	ClassB.prototype.doSomething = function() { }
  *
  * 	var foo = new MySubClass();
  * 	console.log(foo instanceof MySuperClass); // true
@@ -428,12 +428,7 @@ createjs.indexOf = function (array, searchElement){
 	 *          console.log(instance == this); // true, "on" uses dispatcher scope by default.
 	 *      });
 	 * 
-	 * If you want to use addEventListener instead, you may want to use function.bind() or a similar proxy to manage
-	 * scope.
-	 *
-	 * <b>Browser support</b>
-	 * The event model in CreateJS can be used separately from the suite in any project, however the inheritance model
-	 * requires modern browsers (IE9+).
+	 * If you want to use addEventListener instead, you may want to use function.bind() or a similar proxy to manage scope.
 	 *      
 	 *
 	 * @class EventDispatcher
@@ -1811,7 +1806,7 @@ createjs.indexOf = function (array, searchElement){
 	 * Generates matrix properties from the specified display object transform properties, and appends them to this matrix.
 	 * For example, you can use this to generate a matrix representing the transformations of a display object:
 	 * 
-	 * 	var mtx = new createjs.Matrix2D();
+	 * 	var mtx = new Matrix2D();
 	 * 	mtx.appendTransform(o.x, o.y, o.scaleX, o.scaleY, o.rotation);
 	 * @method appendTransform
 	 * @param {Number} x
@@ -2115,7 +2110,7 @@ createjs.indexOf = function (array, searchElement){
 	 * Used for calculating and encapsulating display related properties.
 	 * @class DisplayProps
 	 * @param {Number} [visible=true] Visible value.
-	 * @param {Number} [alpha=1] Alpha value.
+	 * @param {Number} [alpha=0] Alpha value.
 	 * @param {Number} [shadow=null] A Shadow instance or null.
 	 * @param {Number} [compositeOperation=null] A compositeOperation value or null.
 	 * @param {Number} [matrix] A transformation matrix. Defaults to a new identity matrix.
@@ -2176,7 +2171,7 @@ createjs.indexOf = function (array, searchElement){
 		this.visible = visible == null ? true : !!visible;
 		this.alpha = alpha == null ? 1 : alpha;
 		this.shadow = shadow;
-		this.compositeOperation = compositeOperation;
+		this.compositeOperation = shadow;
 		this.matrix = matrix || (this.matrix&&this.matrix.identity()) || new createjs.Matrix2D();
 		return this;
 	};
@@ -2475,11 +2470,11 @@ createjs.indexOf = function (array, searchElement){
 	
 	/** 
 	 * Adds the specified padding to the rectangle's bounds.
-	 * @method pad
-	 * @param {Number} top
-	 * @param {Number} left
-	 * @param {Number} right
-	 * @param {Number} bottom
+	 * @method extend
+	 * @param {Number} [top=0]
+	 * @param {Number} [left=0]
+	 * @param {Number} [right=0]
+	 * @param {Number} [bottom=0]
 	 * @return {Rectangle} This instance. Useful for chaining method calls.
 	 * @chainable
 	*/
@@ -2945,48 +2940,41 @@ createjs.indexOf = function (array, searchElement){
 	 * animation frames) combined into a larger image (or images). For example, an animation consisting of eight 100x100
 	 * images could be combined into a single 400x200 sprite sheet (4 frames across by 2 high).
 	 *
-	 * The data passed to the SpriteSheet constructor defines:
-	 * <ol>
+	 * The data passed to the SpriteSheet constructor defines:<ol>
 	 * 	<li> The source image or images to use.</li>
 	 * 	<li> The positions of individual image frames.</li>
 	 * 	<li> Sequences of frames that form named animations. Optional.</li>
 	 * 	<li> The target playback framerate. Optional.</li>
-	 * </ol>
+	 * </OL>
+	 *
 	 * <h3>SpriteSheet Format</h3>
+	 *
 	 * SpriteSheets are an object with two required properties (`images` and `frames`), and two optional properties
 	 * (`framerate` and `animations`). This makes them easy to define in javascript code, or in JSON.
 	 *
 	 * <h4>images</h4>
-	 * An array of source images. Images can be either an HTMlimage
+	 * An array of source images. Images can be either an HTMLImage
 	 * instance, or a uri to an image. The former is recommended to control preloading.
 	 *
 	 * 	images: [image1, "path/to/image2.png"],
 	 *
 	 * <h4>frames</h4>
-	 * Defines the individual frames. There are two supported formats for frame data:
-	 * When all of the frames are the same size (in a grid), use an object with `width`, `height`, `regX`, `regY`,
-	 * and `count` properties.
+	 * Defines the individual frames. There are two supported formats for frame data:<OL>
+	 * <LI> when all of the frames are the same size (in a grid), use an object with `width`, `height`, `regX`, `regY`, and `count` properties.
+	 * `width` & `height` are required and specify the dimensions of the frames.
+	 * `regX` & `regY` indicate the registration point or "origin" of the frames.
+	 * `spacing` indicate the spacing between frames.
+	 * `margin` specify the margin around the image(s).
+	 * `count` allows you to specify the total number of frames in the spritesheet; if omitted, this will be calculated
+	 * based on the dimensions of the source images and the frames. Frames will be assigned indexes based on their position
+	 * in the source images (left to right, top to bottom).
 	 *
-	 * <ul>
-	 *  <li>`width` & `height` are required and specify the dimensions of the frames</li>
-	 *  <li>`regX` & `regY` indicate the registration point or "origin" of the frames</li>
-	 *  <li>`spacing` indicate the spacing between frames</li>
-	 *  <li>`margin` specify the margin around the image(s)</li>
-	 *  <li>`count` allows you to specify the total number of frames in the spritesheet; if omitted, this will
-	 *  be calculated based on the dimensions of the source images and the frames. Frames will be assigned
-	 *  indexes based on their position in the source images (left to right, top to bottom).</li>
-	 * </ul>
+	 * 	frames: {width:64, height:64, count:20, regX: 32, regY:64, spacing:0, margin:0}
 	 *
-	 *  	frames: {width:64, height:64, count:20, regX: 32, regY:64, spacing:0, margin:0}
-	 *
-	 * If the frames are of different sizes, use an array of frame definitions. Each definition is itself an array
-	 * with 4 required and 3 optional entries, in the order:
-	 *
-	 * <ul>
-	 *  <li>The first four, `x`, `y`, `width`, and `height` are required and define the frame rectangle.</li>
-	 *  <li>The fifth, `imageIndex`, specifies the index of the source image (defaults to 0)</li>
-	 *  <li>The last two, `regX` and `regY` specify the registration point of the frame</li>
-	 * </ul>
+	 * <LI> if the frames are of different sizes, use an array of frame definitions. Each definition is itself an array
+	 * with 4 required and 3 optional entries, in the order: `x`, `y`, `width`, `height`, `imageIndex`, `regX`, `regY`. The first
+	 * four entries are required and define the frame rectangle. The fifth specifies the index of the source image (defaults to 0). The
+	 * last two specify the registration point of the frame.
 	 *
 	 * 	frames: [
 	 * 		// x, y, width, height, imageIndex*, regX*, regY*
@@ -2995,113 +2983,75 @@ createjs.indexOf = function (array, searchElement){
 	 * 		// etc.
 	 * 	]
 	 *
+	 * </OL>
+	 *
 	 * <h4>animations</h4>
 	 * Optional. An object defining sequences of frames to play as named animations. Each property corresponds to an
 	 * animation of the same name. Each animation must specify the frames to play, and may
 	 * also include a relative playback `speed` (ex. 2 would playback at double speed, 0.5 at half), and
 	 * the name of the `next` animation to sequence to after it completes.
 	 *
-	 * There are three formats supported for defining the frames in an animation, which can be mixed and matched as appropriate:
-	 * <ol>
-	 * 	<li>for a single frame animation, you can simply specify the frame index
+	 * There are three formats supported for defining the frames in an animation, which can be mixed and matched as appropriate:<OL>
+	 * <LI> for a single frame animation, you can simply specify the frame index
 	 *
-	 * 		animations: {
-	 * 			sit: 7
+	 * 	animations: {
+	 * 		sit: 7
+	 * 	}
+	 *
+	 * <LI> for an animation of consecutive frames, you can use an array with two required, and two optional entries
+	 * in the order: `start`, `end`, `next`, and `speed`. This will play the frames from start to end inclusive.
+	 *
+	 * 	animations: {
+	 * 		// start, end, next*, speed*
+	 * 		run: [0, 8],
+	 * 		jump: [9, 12, "run", 2]
+	 * 	}
+	 *
+	 * <LI> for non-consecutive frames, you can use an object with a `frames` property defining an array of frame indexes to
+	 * play in order. The object can also specify `next` and `speed` properties.
+	 *
+	 * 	animations: {
+	 * 		walk: {
+	 * 			frames: [1,2,3,3,2,1]
+	 * 		},
+	 * 		shoot: {
+	 * 			frames: [1,4,5,6],
+	 * 			next: "walk",
+	 * 			speed: 0.5
 	 * 		}
+	 * 	}
 	 *
-	 * </li>
-	 * <li>
-	 *      for an animation of consecutive frames, you can use an array with two required, and two optional entries
-	 * 		in the order: `start`, `end`, `next`, and `speed`. This will play the frames from start to end inclusive.
-	 *
-	 * 		animations: {
-	 * 			// start, end, next*, speed*
-	 * 			run: [0, 8],
-	 * 			jump: [9, 12, "run", 2]
-	 * 		}
-	 *
-	 *  </li>
-	 *  <li>
-	 *     for non-consecutive frames, you can use an object with a `frames` property defining an array of frame
-	 *     indexes to play in order. The object can also specify `next` and `speed` properties.
-	 *
-	 * 		animations: {
-	 * 			walk: {
-	 * 				frames: [1,2,3,3,2,1]
-	 * 			},
-	 * 			shoot: {
-	 * 				frames: [1,4,5,6],
-	 * 				next: "walk",
-	 * 				speed: 0.5
-	 * 			}
-	 * 		}
-	 *
-	 *  </li>
-	 * </ol>
+	 * </OL>
 	 * <strong>Note:</strong> the `speed` property was added in EaselJS 0.7.0. Earlier versions had a `frequency`
-	 * property instead, which was the inverse of `speed`. For example, a value of "4" would be 1/4 normal speed in
-	 * earlier versions, but is 4x normal speed in EaselJS 0.7.0+.
+	 * property instead, which was the inverse of `speed`. For example, a value of "4" would be 1/4 normal speed in earlier
+	 * versions, but is 4x normal speed in 0.7.0+.
 	 *
 	 * <h4>framerate</h4>
-	 * Optional. Indicates the default framerate to play this spritesheet at in frames per second. See
-	 * {{#crossLink "SpriteSheet/framerate:property"}}{{/crossLink}} for more information.
+	 * Optional. Indicates the default framerate to play this spritesheet at in frames per second.
+	 * See {{#crossLink "SpriteSheet/framerate:property"}}{{/crossLink}} for more information.
 	 *
-	 * 		framerate: 20
+	 * 	framerate: 20
 	 *
-	 * Note that the Sprite framerate will only work if the stage update method is provided with the {{#crossLink "Ticker/tick:event"}}{{/crossLink}}
-	 * event generated by the {{#crossLink "Ticker"}}{{/crossLink}}.
-	 *
-	 * 		createjs.Ticker.on("tick", handleTick);
-	 * 		function handleTick(event) {
-	 *			stage.update(event);
-	 *		}
-	 *
-	 * <h3>Example</h3>
+	 * <h4>Example</h4>
 	 * To define a simple sprite sheet, with a single image "sprites.jpg" arranged in a regular 50x50 grid with three
-	 * animations: "stand" showing the first frame, "run" looping frame 1-5 inclusive, and "jump" playing frame 6-8 and
-	 * sequencing back to run.
+	 * animations: "stand" showing the first frame, "run" looping frame 1-5 inclusive, and "jump" playing  frame 6-8 and sequencing back to run.
 	 *
-	 * 		var data = {
-	 * 			images: ["sprites.jpg"],
-	 * 			frames: {width:50, height:50},
-	 * 			animations: {
-	 * 				stand:0,
-	 * 				run:[1,5],
-	 * 				jump:[6,8,"run"]
-	 * 			}
-	 * 		};
-	 * 		var spriteSheet = new createjs.SpriteSheet(data);
-	 * 		var animation = new createjs.Sprite(spriteSheet, "run");
+	 * 	var data = {
+	 * 		images: ["sprites.jpg"],
+	 * 		frames: {width:50, height:50},
+	 * 		animations: {
+	 * 			stand:0,
+	 * 			run:[1,5],
+	 * 			jump:[6,8,"run"]
+	 * 		}
+	 * 	};
+	 * 	var spriteSheet = new createjs.SpriteSheet(data);
+	 * 	var animation = new createjs.Sprite(spriteSheet, "run");
 	 *
-	 * <h3>Generating SpriteSheet Images</h3>
-	 * Spritesheets can be created manually by combining images in PhotoShop, and specifying the frame size or
-	 * coordinates manually, however there are a number of tools that facilitate this.
-	 * <ul>
-	 *     <li>Exporting SpriteSheets or HTML5 content from Flash Pro supports the EaselJS SpriteSheet format.</li>
-	 *     <li>The popular <a href="https://www.codeandweb.com/texturepacker/easeljs" target="_blank">Texture Packer</a> has
-	 *     EaselJS support.
-	 *     <li>SWF animations in Flash can be exported to SpriteSheets using <a href="http://createjs.com/zoe" target="_blank"></a></li>
-	 * </ul>
 	 *
-	 * <h3>Cross Origin Issues</h3>
 	 * <strong>Warning:</strong> Images loaded cross-origin will throw cross-origin security errors when interacted with
-	 * using:
-	 * <ul>
-	 *     <li>a mouse</li>
-	 *     <li>methods such as {{#crossLink "Container/getObjectUnderPoint"}}{{/crossLink}}</li>
-	 *     <li>Filters (see {{#crossLink "Filter"}}{{/crossLink}})</li>
-	 *     <li>caching (see {{#crossLink "DisplayObject/cache"}}{{/crossLink}})</li>
-	 * </ul>
-	 * You can get around this by setting `crossOrigin` property on your images before passing them to EaselJS, or
-	 * setting the `crossOrigin` property on PreloadJS' LoadQueue or LoadItems.
-	 *
-	 * 		var image = new Image();
-	 * 		img.crossOrigin="Anonymous";
-	 * 		img.src = "http://server-with-CORS-support.com/path/to/image.jpg";
-	 *
-	 * If you pass string paths to SpriteSheets, they will not work cross-origin. The server that stores the image must
-	 * support cross-origin requests, or this will not work. For more information, check out
-	 * <a href="https://developer.mozilla.org/en-US/docs/Web/HTTP/Access_control_CORS" target="_blank">CORS overview on MDN</a>.
+	 * using a mouse, using methods such as `getObjectUnderPoint`, using filters, or caching. You can get around this by
+	 * setting `crossOrigin` flags on your images before passing them to EaselJS, eg: `img.crossOrigin="Anonymous";`
 	 *
 	 * @class SpriteSheet
 	 * @constructor
@@ -3122,8 +3072,8 @@ createjs.indexOf = function (array, searchElement){
 		this.complete = true;
 
 		/**
-		 * Specifies the framerate to use by default for Sprite instances using the SpriteSheet. See the Sprite class
-		 * {{#crossLink "Sprite/framerate:property"}}{{/crossLink}} for more information.
+		 * Specifies the framerate to use by default for Sprite instances using the SpriteSheet. See
+		 * Sprite.framerate for more information.
 		 * @property framerate
 		 * @type Number
 		 **/
@@ -3231,7 +3181,7 @@ createjs.indexOf = function (array, searchElement){
 	 * were not fully loaded when the sprite sheet was initialized. You should check the complete property
 	 * to prior to adding a listener. Ex.
 	 *
-	 * 	var sheet = new createjs.SpriteSheet(data);
+	 * 	var sheet = new SpriteSheet(data);
 	 * 	if (!sheet.complete) {
 	 * 		// not preloaded, listen for the complete event:
 	 * 		sheet.addEventListener("complete", handler);
@@ -3249,15 +3199,6 @@ createjs.indexOf = function (array, searchElement){
 	 * @event getframe
 	 * @param {Number} index The frame index.
 	 * @param {Object} frame The frame object that getFrame will return.
-	 */
-
-	/**
-	 * Dispatched when an image encounters an error. A SpriteSheet will dispatch an error event for each image that
-	 * encounters an error, and will still dispatch a {{#crossLink "SpriteSheet/complete:event"}}{{/crossLink}}
-	 * event once all images are finished processing, even if an error is encountered.
-	 * @event error
-	 * @param {String} src The source of the image that failed to load.
-	 * @since 0.8.2
 	 */
 
 
@@ -3306,11 +3247,11 @@ createjs.indexOf = function (array, searchElement){
 
 	/**
 	 * Returns an object defining the specified animation. The returned object contains:<UL>
-	 * 	<li>frames: an array of the frame ids in the animation</li>
-	 * 	<li>speed: the playback speed for this animation</li>
-	 * 	<li>name: the name of the animation</li>
-	 * 	<li>next: the default animation to play next. If the animation loops, the name and next property will be the
-	 * 	same.</li>
+	 * 	<LI>frames: an array of the frame ids in the animation</LI>
+	 * 	<LI>speed: the playback speed for this animation</LI>
+	 * 	<LI>name: the name of the animation</LI>
+	 * 	<LI>next: the default animation to play next. If the animation loops, the name and next property will be the
+	 * 	same.</LI>
 	 * </UL>
 	 * @method getAnimation
 	 * @param {String} name The name of the animation to get.
@@ -3322,10 +3263,10 @@ createjs.indexOf = function (array, searchElement){
 
 	/**
 	 * Returns an object specifying the image and source rect of the specified frame. The returned object has:<UL>
-	 * 	<li>an image property holding a reference to the image object in which the frame is found</li>
-	 * 	<li>a rect property containing a Rectangle instance which defines the boundaries for the frame within that
-	 * 	image.</li>
-	 * 	<li> A regX and regY property corresponding to the regX/Y values for the frame.
+	 * 	<LI>an image property holding a reference to the image object in which the frame is found</LI>
+	 * 	<LI>a rect property containing a Rectangle instance which defines the boundaries for the frame within that
+	 * 	image.</LI>
+	 * 	<LI> A regX and regY property corresponding to the regX/Y values for the frame.
 	 * </UL>
 	 * @method getFrame
 	 * @param {Number} frameIndex The index of the frame.
@@ -3396,15 +3337,14 @@ createjs.indexOf = function (array, searchElement){
 				if (!img.getContext && !img.naturalWidth) {
 					this._loadCount++;
 					this.complete = false;
-					(function(o, src) { img.onload = function() { o._handleImageLoad(src); } })(this, src);
-					(function(o, src) { img.onerror = function() { o._handleImageError(src); } })(this, src);
+					(function(o) { img.onload = function() { o._handleImageLoad(); } })(this);
 				}
 			}
 		}
 
 		// parse frames:
 		if (data.frames == null) { // nothing
-		} else if (Array.isArray(data.frames)) {
+		} else if (data.frames instanceof Array) {
 			this._frames = [];
 			a = data.frames;
 			for (i=0,l=a.length;i<l;i++) {
@@ -3433,7 +3373,7 @@ createjs.indexOf = function (array, searchElement){
 				var obj = o[name];
 				if (typeof obj == "number") { // single frame
 					a = anim.frames = [obj];
-				} else if (Array.isArray(obj)) { // simple
+				} else if (obj instanceof Array) { // simple
 					if (obj.length == 1) { anim.frames = [obj[0]]; }
 					else {
 						anim.speed = obj[3];
@@ -3462,25 +3402,10 @@ createjs.indexOf = function (array, searchElement){
 	 * @method _handleImageLoad
 	 * @protected
 	 **/
-	p._handleImageLoad = function(src) {
+	p._handleImageLoad = function() {
 		if (--this._loadCount == 0) {
 			this._calculateFrames();
 			this.complete = true;
-			this.dispatchEvent("complete");
-		}
-	};
-
-	/**
-	 * @method _handleImageError
-	 * @protected
-	 */
-	p._handleImageError = function (src) {
-		var errorEvent = new createjs.Event("error");
-		errorEvent.src = src;
-		this.dispatchEvent(errorEvent);
-
-		// Complete is still dispatched.
-		if (--this._loadCount == 0) {
 			this.dispatchEvent("complete");
 		}
 	};
@@ -3637,11 +3562,9 @@ createjs.indexOf = function (array, searchElement){
 		/**
 		 * Holds a reference to the last command that was created or appended. For example, you could retain a reference
 		 * to a Fill command in order to dynamically update the color later by using:
-		 *
-		 * 		var myFill = myGraphics.beginFill("red").command;
+		 * 		myFill = myGraphics.beginFill("red").command;
 		 * 		// update color later:
 		 * 		myFill.style = "yellow";
-		 *
 		 * @property command
 		 * @type Object
 		 **/
@@ -3974,8 +3897,7 @@ createjs.indexOf = function (array, searchElement){
 
 	/**
 	 * Draws a line from the current drawing point to the specified position, which become the new current drawing
-	 * point. Note that you *must* call {{#crossLink "Graphics/moveTo"}}{{/crossLink}} before the first `lineTo()`.
-	 * A tiny API method "lt" also exists.
+	 * point. A tiny API method "lt" also exists.
 	 *
 	 * For detailed information, read the
 	 * <a href="http://www.whatwg.org/specs/web-apps/current-work/multipage/the-canvas-element.html#complex-shapes-(paths)">
@@ -4496,7 +4418,7 @@ createjs.indexOf = function (array, searchElement){
 	 * 		myShape.color = "red";
 	 *
 	 * 		// append a Circle command object:
-	 * 		myShape.graphics.append(new createjs.Graphics.Circle(50, 50, 30));
+	 * 		myShape.graphics.append(new Graphics.Circle(50, 50, 30));
 	 *
 	 * 		// append a custom command object with an exec method that sets the fill style
 	 * 		// based on the shape's data, and then fills the circle.
@@ -5146,9 +5068,8 @@ createjs.indexOf = function (array, searchElement){
 	 * @type Number
 	 */
 	/**
-	 * Execute the Graphics command in the provided Canvas context.
 	 * @method exec
-	 * @param {CanvasRenderingContext2D} ctx The canvas rendering context
+	 * @param {CanvasRenderingContext2D} ctx
 	 */
 	(G.LineTo = function(x, y) {
 		this.x = x; this.y = y;
@@ -5209,9 +5130,8 @@ createjs.indexOf = function (array, searchElement){
 	 * @type Number
 	 */
 	/**
-	 * Execute the Graphics command in the provided Canvas context.
 	 * @method exec
-	 * @param {CanvasRenderingContext2D} ctx The canvas rendering context
+	 * @param {CanvasRenderingContext2D} ctx
 	 */
 	(G.ArcTo = function(x1, y1, x2, y2, radius) {
 		this.x1 = x1; this.y1 = y1;
@@ -5255,9 +5175,8 @@ createjs.indexOf = function (array, searchElement){
 	 * @type Number
 	 */
 	/**
-	 * Execute the Graphics command in the provided Canvas context.
 	 * @method exec
-	 * @param {CanvasRenderingContext2D} ctx The canvas rendering context
+	 * @param {CanvasRenderingContext2D} ctx
 	 */
 	(G.Arc = function(x, y, radius, startAngle, endAngle, anticlockwise) {
 		this.x = x; this.y = y;
@@ -5292,9 +5211,8 @@ createjs.indexOf = function (array, searchElement){
 	 * @type Number
 	 */
 	/**
-	 * Execute the Graphics command in the provided Canvas context.
 	 * @method exec
-	 * @param {CanvasRenderingContext2D} ctx The canvas rendering context
+	 * @param {CanvasRenderingContext2D} ctx
 	 */
 	(G.QuadraticCurveTo = function(cpx, cpy, x, y) {
 		this.cpx = cpx; this.cpy = cpy;
@@ -5337,9 +5255,8 @@ createjs.indexOf = function (array, searchElement){
 	 * @type Number
 	 */
 	/**
-	 * Execute the Graphics command in the provided Canvas context.
 	 * @method exec
-	 * @param {CanvasRenderingContext2D} ctx The canvas rendering context
+	 * @param {CanvasRenderingContext2D} ctx
 	 */
 	(G.BezierCurveTo = function(cp1x, cp1y, cp2x, cp2y, x, y) {
 		this.cp1x = cp1x; this.cp1y = cp1y;
@@ -5373,9 +5290,8 @@ createjs.indexOf = function (array, searchElement){
 	 * @type Number
 	 */
 	/**
-	 * Execute the Graphics command in the provided Canvas context.
 	 * @method exec
-	 * @param {CanvasRenderingContext2D} ctx The canvas rendering context
+	 * @param {CanvasRenderingContext2D} ctx
 	 */
 	(G.Rect = function(x, y, w, h) {
 		this.x = x; this.y = y;
@@ -5388,9 +5304,8 @@ createjs.indexOf = function (array, searchElement){
 	 * @constructor
 	 **/
 	/**
-	 * Execute the Graphics command in the provided Canvas context.
 	 * @method exec
-	 * @param {CanvasRenderingContext2D} ctx The canvas rendering context
+	 * @param {CanvasRenderingContext2D} ctx
 	 */
 	(G.ClosePath = function() {
 	}).prototype.exec = function(ctx) { ctx.closePath(); };
@@ -5401,9 +5316,8 @@ createjs.indexOf = function (array, searchElement){
 	 * @constructor
 	 **/
 	/**
-	 * Execute the Graphics command in the provided Canvas context.
 	 * @method exec
-	 * @param {CanvasRenderingContext2D} ctx The canvas rendering context
+	 * @param {CanvasRenderingContext2D} ctx
 	 */
 	(G.BeginPath = function() {
 	}).prototype.exec = function(ctx) { ctx.beginPath(); };
@@ -5425,9 +5339,8 @@ createjs.indexOf = function (array, searchElement){
 	 * @type Matrix2D
 	 */
 	/**
-	 * Execute the Graphics command in the provided Canvas context.
 	 * @method exec
-	 * @param {CanvasRenderingContext2D} ctx The canvas rendering context
+	 * @param {CanvasRenderingContext2D} ctx
 	 */
 	p = (G.Fill = function(style, matrix) {
 		this.style = style;
@@ -5446,7 +5359,6 @@ createjs.indexOf = function (array, searchElement){
 	 * See {{#crossLink "Graphics/beginLinearGradientFill"}}{{/crossLink}} for more information.
 	 * @method linearGradient
 	 * @param {Array} colors
-	 *
 	 * @param {Array} ratios
 	 * @param {Number} x0
 	 * @param {Number} y0
@@ -5514,9 +5426,8 @@ createjs.indexOf = function (array, searchElement){
 	 * @type Boolean
 	 */
 	/**
-	 * Execute the Graphics command in the provided Canvas context.
 	 * @method exec
-	 * @param {CanvasRenderingContext2D} ctx The canvas rendering context
+	 * @param {CanvasRenderingContext2D} ctx
 	 */
 	p = (G.Stroke = function(style, ignoreScale) {
 		this.style = style;
@@ -5573,10 +5484,9 @@ createjs.indexOf = function (array, searchElement){
 	 * @class StrokeStyle
 	 * @constructor
 	 * @param {Number} width
-	 * @param {String} [caps=butt]
-	 * @param {String} [joints=miter]
-	 * @param {Number} [miterLimit=10]
-	 * @param {Boolean} [ignoreScale=false]
+	 * @param {String} [caps]
+	 * @param {String} [joints]
+	 * @param {Number} [miterLimit]
 	 **/
 	/**
 	 * @property width
@@ -5597,23 +5507,20 @@ createjs.indexOf = function (array, searchElement){
 	 * @type Number
 	 */
 	/**
-	 * Execute the Graphics command in the provided Canvas context.
 	 * @method exec
-	 * @param {CanvasRenderingContext2D} ctx The canvas rendering context
+	 * @param {CanvasRenderingContext2D} ctx
 	 */
-	p = (G.StrokeStyle = function(width, caps, joints, miterLimit, ignoreScale) {
+	p = (G.StrokeStyle = function(width, caps, joints, miterLimit) {
 		this.width = width;
 		this.caps = caps;
 		this.joints = joints;
 		this.miterLimit = miterLimit;
-		this.ignoreScale = ignoreScale;
 	}).prototype;
 	p.exec = function(ctx) {
 		ctx.lineWidth = (this.width == null ? "1" : this.width);
 		ctx.lineCap = (this.caps == null ? "butt" : (isNaN(this.caps) ? this.caps : Graphics.STROKE_CAPS_MAP[this.caps]));
 		ctx.lineJoin = (this.joints == null ? "miter" : (isNaN(this.joints) ? this.joints : Graphics.STROKE_JOINTS_MAP[this.joints]));
 		ctx.miterLimit = (this.miterLimit == null ? "10" : this.miterLimit);
-		ctx.ignoreScale = (this.ignoreScale == null ? false : this.ignoreScale);
 	};
 	p.path = false;
 	
@@ -5633,9 +5540,8 @@ createjs.indexOf = function (array, searchElement){
 	 * @type Number
 	 */
 	/**
-	 * Execute the Graphics command in the provided Canvas context.
 	 * @method exec
-	 * @param {CanvasRenderingContext2D} ctx The canvas rendering context
+	 * @param {CanvasRenderingContext2D} ctx
 	 */
 	(G.StrokeDash = function(segments, offset) {
 		this.segments = segments;
@@ -5703,9 +5609,8 @@ createjs.indexOf = function (array, searchElement){
 	 * @type Number
 	 */
 	/**
-	 * Execute the Graphics command in the provided Canvas context.
 	 * @method exec
-	 * @param {CanvasRenderingContext2D} ctx The canvas rendering context
+	 * @param {CanvasRenderingContext2D} ctx
 	 */
 	(G.RoundRect = function(x, y, w, h, radiusTL, radiusTR, radiusBR, radiusBL) {
 		this.x = x; this.y = y;
@@ -5759,9 +5664,8 @@ createjs.indexOf = function (array, searchElement){
 	 * @type Number
 	 */
 	/**
-	 * Execute the Graphics command in the provided Canvas context.
 	 * @method exec
-	 * @param {CanvasRenderingContext2D} ctx The canvas rendering context
+	 * @param {CanvasRenderingContext2D} ctx
 	 */
 	(G.Circle = function(x, y, radius) {
 		this.x = x; this.y = y;
@@ -5794,9 +5698,8 @@ createjs.indexOf = function (array, searchElement){
 	 * @type Number
 	 */
 	/**
-	 * Execute the Graphics command in the provided Canvas context.
 	 * @method exec
-	 * @param {CanvasRenderingContext2D} ctx The canvas rendering context
+	 * @param {CanvasRenderingContext2D} ctx
 	 */
 	(G.Ellipse = function(x, y, w, h) {
 		this.x = x; this.y = y;
@@ -5856,9 +5759,8 @@ createjs.indexOf = function (array, searchElement){
 	 * @type Number
 	 */
 	/**
-	 * Execute the Graphics command in the provided Canvas context.
 	 * @method exec
-	 * @param {CanvasRenderingContext2D} ctx The canvas rendering context
+	 * @param {CanvasRenderingContext2D} ctx
 	 */
 	(G.PolyStar = function(x, y, radius, sides, pointSize, angle) {
 		this.x = x; this.y = y;
@@ -6647,7 +6549,7 @@ createjs.indexOf = function (array, searchElement){
 	 *      displayObject.x = 300;
 	 *      displayObject.y = 200;
 	 *      stage.addChild(displayObject);
-	 *      var point = displayObject.localToGlobal(100, 100);
+	 *      var point = myDisplayObject.localToGlobal(100, 100);
 	 *      // Results in x=400, y=300
 	 *
 	 * @method localToGlobal
@@ -6672,7 +6574,7 @@ createjs.indexOf = function (array, searchElement){
 	 *      displayObject.x = 300;
 	 *      displayObject.y = 200;
 	 *      stage.addChild(displayObject);
-	 *      var point = displayObject.globalToLocal(100, 100);
+	 *      var point = myDisplayObject.globalToLocal(100, 100);
 	 *      // Results in x=-200, y=-100
 	 *
 	 * @method globalToLocal
@@ -6794,29 +6696,17 @@ createjs.indexOf = function (array, searchElement){
 	};
 
 	/**
-	 * Tests whether the display object intersects the specified point in <em>local</em> coordinates (ie. draws a pixel
-	 * with alpha > 0 at the specified position). This ignores the alpha, shadow, hitArea, mask, and compositeOperation
-	 * of the display object.
+	 * Tests whether the display object intersects the specified point in local coordinates (ie. draws a pixel with alpha > 0 at
+	 * the specified position). This ignores the alpha, shadow, hitArea, mask, and compositeOperation of the display object.
 	 *
 	 * <h4>Example</h4>
 	 *
-	 * 		var myShape = new createjs.Shape();
-	 * 		myShape.graphics.beginFill("red").drawRect(100, 100, 20, 50);
-	 *
-	 * 		console.log(myShape.hitTest(10,10); // false
-	 * 		console.log(myShape.hitTest(110, 25); // true
-	 *
-	 * Note that to use Stage coordinates (such as {{#crossLink "Stage/mouseX:property"}}{{/crossLink}}), they must
-	 * first be converted to local coordinates:
-	 *
 	 *      stage.addEventListener("stagemousedown", handleMouseDown);
 	 *      function handleMouseDown(event) {
-	 *      	var p = myShape.globalToLocal(stage.mouseX, stage.mouseY);
-	 *          var hit = myShape.hitTest(p.x, p.y);
+	 *          var hit = myShape.hitTest(event.stageX, event.stageY);
 	 *      }
 	 *
-	 * Shape-to-shape collision is not currently supported by EaselJS.
-	 *
+	 * Please note that shape-to-shape collision is not currently supported by EaselJS.
 	 * @method hitTest
 	 * @param {Number} x The x position to check in the display object's local coordinates.
 	 * @param {Number} y The y position to check in the display object's local coordinates.
@@ -6840,7 +6730,7 @@ createjs.indexOf = function (array, searchElement){
 	 * <h4>Example</h4>
 	 *
 	 *      var myGraphics = new createjs.Graphics().beginFill("#ff0000").drawCircle(0, 0, 25);
-	 *      var shape = stage.addChild(new createjs.Shape()).set({graphics:myGraphics, x:100, y:100, alpha:0.5});
+	 *      var shape = stage.addChild(new Shape()).set({graphics:myGraphics, x:100, y:100, alpha:0.5});
 	 *
 	 * @method set
 	 * @param {Object} props A generic object containing properties to copy to the DisplayObject instance.
@@ -10110,682 +10000,6 @@ createjs.indexOf = function (array, searchElement){
 }());
 
 //##############################################################################
-// MovieClip.js
-//##############################################################################
-
-(function() {
-	"use strict";
-
-
-// constructor:
-	/**
-	 * The MovieClip class associates a TweenJS Timeline with an EaselJS {{#crossLink "Container"}}{{/crossLink}}. It allows
-	 * you to create objects which encapsulate timeline animations, state changes, and synched actions. Due to the
-	 * complexities inherent in correctly setting up a MovieClip, it is largely intended for tool output and is not included
-	 * in the main EaselJS library.
-	 *
-	 * Currently MovieClip only works properly if it is tick based (as opposed to time based) though some concessions have
-	 * been made to support time-based timelines in the future.
-	 *
-	 * <h4>Example</h4>
-	 * This example animates two shapes back and forth. The grey shape starts on the left, but we jump to a mid-point in
-	 * the animation using {{#crossLink "MovieClip/gotoAndPlay"}}{{/crossLink}}.
-	 *
-	 *      var stage = new createjs.Stage("canvas");
-	 *      createjs.Ticker.addEventListener("tick", stage);
-	 *
-	 *      var mc = new createjs.MovieClip(null, 0, true, {start:20});
-	 *      stage.addChild(mc);
-	 *
-	 *      var child1 = new createjs.Shape(
-	 *          new createjs.Graphics().beginFill("#999999")
-	 *              .drawCircle(30,30,30));
-	 *      var child2 = new createjs.Shape(
-	 *          new createjs.Graphics().beginFill("#5a9cfb")
-	 *              .drawCircle(30,30,30));
-	 *
-	 *      mc.timeline.addTween(
-	 *          createjs.Tween.get(child1)
-	 *              .to({x:0}).to({x:60}, 50).to({x:0}, 50));
-	 *      mc.timeline.addTween(
-	 *          createjs.Tween.get(child2)
-	 *              .to({x:60}).to({x:0}, 50).to({x:60}, 50));
-	 *
-	 *      mc.gotoAndPlay("start");
-	 *
-	 * It is recommended to use <code>tween.to()</code> to animate and set properties (use no duration to have it set
-	 * immediately), and the <code>tween.wait()</code> method to create delays between animations. Note that using the
-	 * <code>tween.set()</code> method to affect properties will likely not provide the desired result.
-	 *
-	 * @class MovieClip
-	 * @main MovieClip
-	 * @extends Container
-	 * @constructor
-	 * @param {String} [mode=independent] Initial value for the mode property. One of {{#crossLink "MovieClip/INDEPENDENT:property"}}{{/crossLink}},
-	 * {{#crossLink "MovieClip/SINGLE_FRAME:property"}}{{/crossLink}}, or {{#crossLink "MovieClip/SYNCHED:property"}}{{/crossLink}}.
-	 * The default is {{#crossLink "MovieClip/INDEPENDENT:property"}}{{/crossLink}}.
-	 * @param {Number} [startPosition=0] Initial value for the {{#crossLink "MovieClip/startPosition:property"}}{{/crossLink}}
-	 * property.
-	 * @param {Boolean} [loop=true] Initial value for the {{#crossLink "MovieClip/loop:property"}}{{/crossLink}}
-	 * property. The default is `true`.
-	 * @param {Object} [labels=null] A hash of labels to pass to the {{#crossLink "MovieClip/timeline:property"}}{{/crossLink}}
-	 * instance associated with this MovieClip. Labels only need to be passed if they need to be used.
-	 **/
-	function MovieClip(mode, startPosition, loop, labels) {
-		this.Container_constructor();
-		!MovieClip.inited&&MovieClip.init(); // static init
-		
-		
-	// public properties:
-		/**
-		 * Controls how this MovieClip advances its time. Must be one of 0 (INDEPENDENT), 1 (SINGLE_FRAME), or 2 (SYNCHED).
-		 * See each constant for a description of the behaviour.
-		 * @property mode
-		 * @type String
-		 * @default null
-		 **/
-		this.mode = mode||MovieClip.INDEPENDENT;
-	
-		/**
-		 * Specifies what the first frame to play in this movieclip, or the only frame to display if mode is SINGLE_FRAME.
-		 * @property startPosition
-		 * @type Number
-		 * @default 0
-		 */
-		this.startPosition = startPosition || 0;
-	
-		/**
-		 * Indicates whether this MovieClip should loop when it reaches the end of its timeline.
-		 * @property loop
-		 * @type Boolean
-		 * @default true
-		 */
-		this.loop = loop;
-	
-		/**
-		 * The current frame of the movieclip.
-		 * @property currentFrame
-		 * @type Number
-		 * @default 0
-		 * @readonly
-		 */
-		this.currentFrame = 0;
-	
-		/**
-		 * The TweenJS Timeline that is associated with this MovieClip. This is created automatically when the MovieClip
-		 * instance is initialized. Animations are created by adding <a href="http://tweenjs.com">TweenJS</a> Tween
-		 * instances to the timeline.
-		 *
-		 * <h4>Example</h4>
-		 *
-		 *      var tween = createjs.Tween.get(target).to({x:0}).to({x:100}, 30);
-		 *      var mc = new createjs.MovieClip();
-		 *      mc.timeline.addTween(tween);
-		 *
-		 * Elements can be added and removed from the timeline by toggling an "_off" property
-		 * using the <code>tweenInstance.to()</code> method. Note that using <code>Tween.set</code> is not recommended to
-		 * create MovieClip animations. The following example will toggle the target off on frame 0, and then back on for
-		 * frame 1. You can use the "visible" property to achieve the same effect.
-		 *
-		 *      var tween = createjs.Tween.get(target).to({_off:false})
-		 *          .wait(1).to({_off:true})
-		 *          .wait(1).to({_off:false});
-		 *
-		 * @property timeline
-		 * @type Timeline
-		 * @default null
-		 */
-		this.timeline = new createjs.Timeline(null, labels, {paused:true, position:startPosition, useTicks:true});
-	
-		/**
-		 * If true, the MovieClip's position will not advance when ticked.
-		 * @property paused
-		 * @type Boolean
-		 * @default false
-		 */
-		this.paused = false;
-	
-		/**
-		 * If true, actions in this MovieClip's tweens will be run when the playhead advances.
-		 * @property actionsEnabled
-		 * @type Boolean
-		 * @default true
-		 */
-		this.actionsEnabled = true;
-	
-		/**
-		 * If true, the MovieClip will automatically be reset to its first frame whenever the timeline adds
-		 * it back onto the display list. This only applies to MovieClip instances with mode=INDEPENDENT.
-		 * <br><br>
-		 * For example, if you had a character animation with a "body" child MovieClip instance
-		 * with different costumes on each frame, you could set body.autoReset = false, so that
-		 * you can manually change the frame it is on, without worrying that it will be reset
-		 * automatically.
-		 * @property autoReset
-		 * @type Boolean
-		 * @default true
-		 */
-		this.autoReset = true;
-		
-		/**
-		 * An array of bounds for each frame in the MovieClip. This is mainly intended for tool output.
-		 * @property frameBounds
-		 * @type Array
-		 * @default null
-		 */
-		this.frameBounds = this.frameBounds||null; // TODO: Deprecated. This is for backwards support of FlashCC
-		
-		/**
-		 * By default MovieClip instances advance one frame per tick. Specifying a framerate for the MovieClip
-		 * will cause it to advance based on elapsed time between ticks as appropriate to maintain the target
-		 * framerate.
-		 *
-		 * For example, if a MovieClip with a framerate of 10 is placed on a Stage being updated at 40fps, then the MovieClip will
-		 * advance roughly one frame every 4 ticks. This will not be exact, because the time between each tick will
-		 * vary slightly between frames.
-		 *
-		 * This feature is dependent on the tick event object (or an object with an appropriate "delta" property) being
-		 * passed into {{#crossLink "Stage/update"}}{{/crossLink}}.
-		 * @property framerate
-		 * @type {Number}
-		 * @default null
-		 **/
-		this.framerate = null;
-		
-		
-	// private properties:
-		/**
-		 * @property _synchOffset
-		 * @type Number
-		 * @default 0
-		 * @private
-		 */
-		this._synchOffset = 0;
-	
-		/**
-		 * @property _prevPos
-		 * @type Number
-		 * @default -1
-		 * @private
-		 */
-		this._prevPos = -1; // TODO: evaluate using a ._reset Boolean prop instead of -1.
-	
-		/**
-		 * @property _prevPosition
-		 * @type Number
-		 * @default 0
-		 * @private
-		 */
-		this._prevPosition = 0;
-	
-		/**
-		 * The time remaining from the previous tick, only applicable when .framerate is set.
-		 * @property _t
-		 * @type Number
-		 * @private
-		 */
-		this._t = 0;
-	
-		/**
-		 * List of display objects that are actively being managed by the MovieClip.
-		 * @property _managed
-		 * @type Object
-		 * @private
-		 */
-		this._managed = {};
-	}
-	var p = createjs.extend(MovieClip, createjs.Container);
-
-
-// constants:
-	/**
-	 * The MovieClip will advance independently of its parent, even if its parent is paused.
-	 * This is the default mode.
-	 * @property INDEPENDENT
-	 * @static
-	 * @type String
-	 * @default "independent"
-	 * @readonly
-	 **/
-	MovieClip.INDEPENDENT = "independent";
-
-	/**
-	 * The MovieClip will only display a single frame (as determined by the startPosition property).
-	 * @property SINGLE_FRAME
-	 * @static
-	 * @type String
-	 * @default "single"
-	 * @readonly
-	 **/
-	MovieClip.SINGLE_FRAME = "single";
-
-	/**
-	 * The MovieClip will be advanced only when its parent advances and will be synched to the position of
-	 * the parent MovieClip.
-	 * @property SYNCHED
-	 * @static
-	 * @type String
-	 * @default "synched"
-	 * @readonly
-	 **/
-	MovieClip.SYNCHED = "synched";
-	
-	
-// static properties:
-	MovieClip.inited = false;
-	
-	
-// static methods:
-	MovieClip.init = function() {
-		if (MovieClip.inited) { return; }
-		// plugins introduce some overhead to Tween, so we only install this if an MC is instantiated.
-		MovieClipPlugin.install();
-		MovieClip.inited = true;
-	};
-	
-	
-// getter / setters:
-	/**
-	 * Use the {{#crossLink "MovieClip/labels:property"}}{{/crossLink}} property instead.
-	 * @method getLabels
-	 * @return {Array}
-	 * @deprecated
-	 **/
-	p.getLabels = function() {
-		return this.timeline.getLabels();
-	};
-	
-	/**
-	 * Use the {{#crossLink "MovieClip/currentLabel:property"}}{{/crossLink}} property instead.
-	 * @method getCurrentLabel
-	 * @return {String}
-	 * @deprecated
-	 **/
-	p.getCurrentLabel = function() {
-		this._updateTimeline();
-		return this.timeline.getCurrentLabel();
-	};
-	
-	/**
-	 * Use the {{#crossLink "MovieClip/duration:property"}}{{/crossLink}} property instead.
-	 * @method getDuration
-	 * @return {Number}
-	 * @protected
-	 **/
-	p.getDuration = function() {
-		return this.timeline.duration;
-	};
-
-	/**
-	 * Returns an array of objects with label and position (aka frame) properties, sorted by position.
-	 * Shortcut to TweenJS: Timeline.getLabels();
-	 * @property labels
-	 * @type {Array}
-	 * @readonly
-	 **/
-	
-	/**
-	 * Returns the name of the label on or immediately before the current frame. See TweenJS: Timeline.getCurrentLabel()
-	 * for more information.
-	 * @property currentLabel
-	 * @type {String}
-	 * @readonly
-	 **/
-	
-	/**
-	 * Returns the duration of this MovieClip in seconds or ticks. Identical to {{#crossLink "MovieClip/duration:property"}}{{/crossLink}}
-	 * and provided for Flash API compatibility.
-	 * @property totalFrames
-	 * @type {Number}
-	 * @readonly
-	 **/
-	
-	/**
-	 * Returns the duration of this MovieClip in seconds or ticks.
-	 * @property duration
-	 * @type {Number}
-	 * @readonly
-	 **/
-	try {
-		Object.defineProperties(p, {
-			labels: { get: p.getLabels },
-			currentLabel: { get: p.getCurrentLabel },
-			totalFrames: { get: p.getDuration },
-			duration: { get: p.getDuration }
-		});
-	} catch (e) {}
-
-
-// public methods:
-	/**
-	 * Constructor alias for backwards compatibility. This method will be removed in future versions.
-	 * Subclasses should be updated to use {{#crossLink "Utility Methods/extends"}}{{/crossLink}}.
-	 * @method initialize
-	 * @deprecated in favour of `createjs.promote()`
-	 **/
-	p.initialize = MovieClip; // TODO: Deprecated. This is for backwards support of FlashCC
-
-	/**
-	 * Returns true or false indicating whether the display object would be visible if drawn to a canvas.
-	 * This does not account for whether it would be visible within the boundaries of the stage.
-	 * NOTE: This method is mainly for internal use, though it may be useful for advanced uses.
-	 * @method isVisible
-	 * @return {Boolean} Boolean indicating whether the display object would be visible if drawn to a canvas
-	 **/
-	p.isVisible = function() {
-		// children are placed in draw, so we can't determine if we have content.
-		return !!(this.visible && this.alpha > 0 && this.scaleX != 0 && this.scaleY != 0);
-	};
-
-	/**
-	 * Draws the display object into the specified context ignoring its visible, alpha, shadow, and transform.
-	 * Returns true if the draw was handled (useful for overriding functionality).
-	 * NOTE: This method is mainly for internal use, though it may be useful for advanced uses.
-	 * @method draw
-	 * @param {CanvasRenderingContext2D} ctx The canvas 2D context object to draw into.
-	 * @param {Boolean} ignoreCache Indicates whether the draw operation should ignore any current cache.
-	 * For example, used for drawing the cache (to prevent it from simply drawing an existing cache back
-	 * into itself).
-	 **/
-	p.draw = function(ctx, ignoreCache) {
-		// draw to cache first:
-		if (this.DisplayObject_draw(ctx, ignoreCache)) { return true; }
-		this._updateTimeline();
-		this.Container_draw(ctx, ignoreCache);
-		return true;
-	};
-	
-	/**
-	 * Sets paused to false.
-	 * @method play
-	 **/
-	p.play = function() {
-		this.paused = false;
-	};
-	
-	/**
-	 * Sets paused to true.
-	 * @method stop
-	 **/
-	p.stop = function() {
-		this.paused = true;
-	};
-	
-	/**
-	 * Advances this movie clip to the specified position or label and sets paused to false.
-	 * @method gotoAndPlay
-	 * @param {String|Number} positionOrLabel The animation name or frame number to go to.
-	 **/
-	p.gotoAndPlay = function(positionOrLabel) {
-		this.paused = false;
-		this._goto(positionOrLabel);
-	};
-	
-	/**
-	 * Advances this movie clip to the specified position or label and sets paused to true.
-	 * @method gotoAndStop
-	 * @param {String|Number} positionOrLabel The animation or frame name to go to.
-	 **/
-	p.gotoAndStop = function(positionOrLabel) {
-		this.paused = true;
-		this._goto(positionOrLabel);
-	};
-	
-	/**
-	 * Advances the playhead. This occurs automatically each tick by default.
-	 * @param [time] {Number} The amount of time in ms to advance by. Only applicable if framerate is set.
-	 * @method advance
-	*/
-	p.advance = function(time) {
-		// TODO: should we worry at all about clips who change their own modes via frame scripts?
-		var independent = MovieClip.INDEPENDENT;
-		if (this.mode != independent) { return; }
-		
-		var o=this, fps = o.framerate;
-		while ((o = o.parent) && fps == null) {
-			if (o.mode == independent) { fps = o._framerate; }
-		}
-		this._framerate = fps;
-		
-		var t = (fps != null && fps != -1 && time != null) ? time/(1000/fps) + this._t : 1;
-		var frames = t|0;
-		this._t = t-frames; // leftover time
-		
-		while (!this.paused && frames--) {
-			this._prevPosition = (this._prevPos < 0) ? 0 : this._prevPosition+1;
-			this._updateTimeline();
-		}
-	};
-	
-	/**
-	 * MovieClip instances cannot be cloned.
-	 * @method clone
-	 **/
-	p.clone = function() {
-		// TODO: add support for this? Need to clone the Timeline & retarget tweens - pretty complex.
-		throw("MovieClip cannot be cloned.")
-	};
-	
-	/**
-	 * Returns a string representation of this object.
-	 * @method toString
-	 * @return {String} a string representation of the instance.
-	 **/
-	p.toString = function() {
-		return "[MovieClip (name="+  this.name +")]";
-	};
-
-
-// private methods:
-	/**
-	 * @method _tick
-	 * @param {Object} evtObj An event object that will be dispatched to all tick listeners. This object is reused between dispatchers to reduce construction & GC costs.
-	 * function.
-	 * @protected
-	 **/
-	p._tick = function(evtObj) {
-		this.advance(evtObj&&evtObj.delta);
-		this.Container__tick(evtObj);
-	};
-	
-	/**
-	 * @method _goto
-	 * @param {String|Number} positionOrLabel The animation name or frame number to go to.
-	 * @protected
-	 **/
-	p._goto = function(positionOrLabel) {
-		var pos = this.timeline.resolve(positionOrLabel);
-		if (pos == null) { return; }
-		// prevent _updateTimeline from overwriting the new position because of a reset:
-		if (this._prevPos == -1) { this._prevPos = NaN; }
-		this._prevPosition = pos;
-		this._t = 0;
-		this._updateTimeline();
-	};
-	
-	/**
-	 * @method _reset
-	 * @private
-	 **/
-	p._reset = function() {
-		this._prevPos = -1;
-		this._t = this.currentFrame = 0;
-		this.paused = false;
-	};
-	
-	/**
-	 * @method _updateTimeline
-	 * @protected
-	 **/
-	p._updateTimeline = function() {
-		var tl = this.timeline;
-		var synched = this.mode != MovieClip.INDEPENDENT;
-		tl.loop = (this.loop==null) ? true : this.loop;
-		
-		var pos = synched ? this.startPosition + (this.mode==MovieClip.SINGLE_FRAME?0:this._synchOffset) : (this._prevPos < 0 ? 0 : this._prevPosition);
-		var mode = synched || !this.actionsEnabled ? createjs.Tween.NONE : null;
-		
-		// pre-assign currentFrame so it is available to frame scripts:
-		this.currentFrame = tl._calcPosition(pos);
-		
-		// update timeline position, ignoring actions if this is a graphic.
-		tl.setPosition(pos, mode);
-
-		this._prevPosition = tl._prevPosition;
-		if (this._prevPos == tl._prevPos) { return; }
-		this.currentFrame = this._prevPos = tl._prevPos;
-
-		for (var n in this._managed) { this._managed[n] = 1; }
-
-		var tweens = tl._tweens;
-		for (var i=0, l=tweens.length; i<l; i++) {
-			var tween = tweens[i];
-			var target = tween._target;
-			if (target == this || tween.passive) { continue; } // TODO: this assumes actions tween has this as the target. Valid?
-			var offset = tween._stepPosition;
-
-			if (target instanceof createjs.DisplayObject) {
-				// motion tween.
-				this._addManagedChild(target, offset);
-			} else {
-				// state tween.
-				this._setState(target.state, offset);
-			}
-		}
-
-		var kids = this.children;
-		for (i=kids.length-1; i>=0; i--) {
-			var id = kids[i].id;
-			if (this._managed[id] == 1) {
-				this.removeChildAt(i);
-				delete(this._managed[id]);
-			}
-		}
-	};
-
-	/**
-	 * @method _setState
-	 * @param {Array} state
-	 * @param {Number} offset
-	 * @protected
-	 **/
-	p._setState = function(state, offset) {
-		if (!state) { return; }
-		for (var i=state.length-1;i>=0;i--) {
-			var o = state[i];
-			var target = o.t;
-			var props = o.p;
-			for (var n in props) { target[n] = props[n]; }
-			this._addManagedChild(target, offset);
-		}
-	};
-
-	/**
-	 * Adds a child to the timeline, and sets it up as a managed child.
-	 * @method _addManagedChild
-	 * @param {MovieClip} child The child MovieClip to manage
-	 * @param {Number} offset
-	 * @private
-	 **/
-	p._addManagedChild = function(child, offset) {
-		if (child._off) { return; }
-		this.addChildAt(child,0);
-
-		if (child instanceof MovieClip) {
-			child._synchOffset = offset;
-			// TODO: this does not precisely match Flash. Flash loses track of the clip if it is renamed or removed from the timeline, which causes it to reset.
-			if (child.mode == MovieClip.INDEPENDENT && child.autoReset && !this._managed[child.id]) { child._reset(); }
-		}
-		this._managed[child.id] = 2;
-	};
-	
-	/**
-	 * @method _getBounds
-	 * @param {Matrix2D} matrix
-	 * @param {Boolean} ignoreTransform
-	 * @return {Rectangle}
-	 * @protected
-	 **/
-	p._getBounds = function(matrix, ignoreTransform) {
-		var bounds = this.DisplayObject_getBounds();
-		if (!bounds) {
-			this._updateTimeline();
-			if (this.frameBounds) { bounds = this._rectangle.copy(this.frameBounds[this.currentFrame]); }
-		}
-		if (bounds) { return this._transformBounds(bounds, matrix, ignoreTransform); }
-		return this.Container__getBounds(matrix, ignoreTransform);
-	};
-
-
-	createjs.MovieClip = createjs.promote(MovieClip, "Container");
-
-
-
-// MovieClipPlugin for TweenJS:
-	/**
-	 * This plugin works with <a href="http://tweenjs.com" target="_blank">TweenJS</a> to prevent the startPosition
-	 * property from tweening.
-	 * @private
-	 * @class MovieClipPlugin
-	 * @constructor
-	 **/
-	function MovieClipPlugin() {
-		throw("MovieClipPlugin cannot be instantiated.")
-	}
-	
-	/**
-	 * @method priority
-	 * @private
-	 **/
-	MovieClipPlugin.priority = 100; // very high priority, should run first
-
-	/**
-	 * @method install
-	 * @private
-	 **/
-	MovieClipPlugin.install = function() {
-		createjs.Tween.installPlugin(MovieClipPlugin, ["startPosition"]);
-	};
-	
-	/**
-	 * @method init
-	 * @param {Tween} tween
-	 * @param {String} prop
-	 * @param {String|Number|Boolean} value
-	 * @private
-	 **/
-	MovieClipPlugin.init = function(tween, prop, value) {
-		return value;
-	};
-	
-	/**
-	 * @method step
-	 * @private
-	 **/
-	MovieClipPlugin.step = function() {
-		// unused.
-	};
-
-	/**
-	 * @method tween
-	 * @param {Tween} tween
-	 * @param {String} prop
-	 * @param {String | Number | Boolean} value
-	 * @param {Array} startValues
-	 * @param {Array} endValues
-	 * @param {Number} ratio
-	 * @param {Object} wait
-	 * @param {Object} end
-	 * @return {*}
-	 */
-	MovieClipPlugin.tween = function(tween, prop, value, startValues, endValues, ratio, wait, end) {
-		if (!(tween.target instanceof MovieClip)) { return value; }
-		return (ratio == 1 ? endValues[prop] : startValues[prop]);
-	};
-
-}());
-
-//##############################################################################
 // SpriteSheetUtils.js
 //##############################################################################
 
@@ -10993,30 +10207,27 @@ createjs.indexOf = function (array, searchElement){
 
 // constructor:
 	/**
-	 * The SpriteSheetBuilder allows you to generate {{#crossLink "SpriteSheet"}}{{/crossLink}} instances at run time
-	 * from any display object. This can allow you to maintain your assets as vector graphics (for low file size), and
-	 * render them at run time as SpriteSheets for better performance.
+	 * The SpriteSheetBuilder allows you to generate sprite sheets at run time from any display object. This can allow
+	 * you to maintain your assets as vector graphics (for low file size), and render them at run time as sprite sheets
+	 * for better performance.
 	 *
-	 * SpriteSheets can be built either synchronously, or asynchronously, so that large SpriteSheets can be generated
+	 * Sprite sheets can be built either synchronously, or asynchronously, so that large sprite sheets can be generated
 	 * without locking the UI.
 	 *
-	 * Note that the "images" used in the generated SpriteSheet are actually canvas elements, and that they will be
-	 * sized to the nearest power of 2 up to the value of {{#crossLink "SpriteSheetBuilder/maxWidth:property"}}{{/crossLink}}
-	 * or {{#crossLink "SpriteSheetBuilder/maxHeight:property"}}{{/crossLink}}.
+	 * Note that the "images" used in the generated sprite sheet are actually canvas elements, and that they will be sized
+	 * to the nearest power of 2 up to the value of <code>maxWidth</code> or <code>maxHeight</code>.
 	 * @class SpriteSheetBuilder
-	 * @param {Number} [framerate=0] The {{#crossLink "SpriteSheet/framerate:property"}}{{/crossLink}} of
-	 * {{#crossLink "SpriteSheet"}}{{/crossLink}} instances that are created.
 	 * @extends EventDispatcher
 	 * @constructor
 	 **/
-	function SpriteSheetBuilder(framerate) {
+	function SpriteSheetBuilder() {
 		this.EventDispatcher_constructor();
 		
 	// public properties:
 		/**
-		 * The maximum width for the images (not individual frames) in the generated SpriteSheet. It is recommended to
-		 * use a power of 2 for this value (ex. 1024, 2048, 4096). If the frames cannot all fit within the max
-		 * dimensions, then additional images will be created as needed.
+		 * The maximum width for the images (not individual frames) in the generated sprite sheet. It is recommended to use
+		 * a power of 2 for this value (ex. 1024, 2048, 4096). If the frames cannot all fit within the max dimensions, then
+		 * additional images will be created as needed.
 		 * @property maxWidth
 		 * @type Number
 		 * @default 2048
@@ -11024,9 +10235,9 @@ createjs.indexOf = function (array, searchElement){
 		this.maxWidth = 2048;
 	
 		/**
-		 * The maximum height for the images (not individual frames) in the generated SpriteSheet. It is recommended to
-		 * use a power of 2 for this value (ex. 1024, 2048, 4096). If the frames cannot all fit within the max
-		 * dimensions, then additional images will be created as needed.
+		 * The maximum height for the images (not individual frames) in the generated sprite sheet. It is recommended to use
+		 * a power of 2 for this value (ex. 1024, 2048, 4096). If the frames cannot all fit within the max dimensions, then
+		 * additional images will be created as needed.
 		 * @property maxHeight
 		 * @type Number
 		 * @default 2048
@@ -11034,16 +10245,16 @@ createjs.indexOf = function (array, searchElement){
 		this.maxHeight = 2048;
 	
 		/**
-		 * The SpriteSheet that was generated. This will be null before a build is completed successfully.
+		 * The sprite sheet that was generated. This will be null before a build is completed successfully.
 		 * @property spriteSheet
 		 * @type SpriteSheet
 		 **/
 		this.spriteSheet = null;
 	
 		/**
-		 * The scale to apply when drawing all frames to the SpriteSheet. This is multiplied against any scale specified
-		 * in the addFrame call. This can be used, for example, to generate a SpriteSheet at run time that is tailored
-		 * to the a specific device resolution (ex. tablet vs mobile).
+		 * The scale to apply when drawing all frames to the sprite sheet. This is multiplied against any scale specified
+		 * in the addFrame call. This can be used, for example, to generate a sprite sheet at run time that is tailored to
+		 * the a specific device resolution (ex. tablet vs mobile).
 		 * @property scale
 		 * @type Number
 		 * @default 1
@@ -11076,18 +10287,8 @@ createjs.indexOf = function (array, searchElement){
 		 * @type Number
 		 * @default -1
 		 * @readonly
-		 */
+		 **/
 		this.progress = -1;
-
-		/**
-		 * A {{#crossLink "SpriteSheet/framerate:property"}}{{/crossLink}} value that will be passed to new {{#crossLink "SpriteSheet"}}{{/crossLink}} instances that are
-		 * created. If no framerate is specified (or it is 0), then SpriteSheets will use the {{#crossLink "Ticker"}}{{/crossLink}}
-		 * framerate.
-		 * @property framerate
-		 * @type Number
-		 * @default 0
-		 */
-		this.framerate = framerate || 0;
 	
 	
 	// private properties:
@@ -11187,13 +10388,13 @@ createjs.indexOf = function (array, searchElement){
 	 * times, but manipulate it or its children to change it to generate different frames.
 	 *
 	 * Note that the source's transformations (x, y, scale, rotate, alpha) will be ignored, except for regX/Y. To apply
-	 * transforms to a source object and have them captured in the SpriteSheet, simply place it into a {{#crossLink "Container"}}{{/crossLink}}
+	 * transforms to a source object and have them captured in the sprite sheet, simply place it into a {{#crossLink "Container"}}{{/crossLink}}
 	 * and pass in the Container as the source.
 	 * @method addFrame
 	 * @param {DisplayObject} source The source {{#crossLink "DisplayObject"}}{{/crossLink}}  to draw as the frame.
 	 * @param {Rectangle} [sourceRect] A {{#crossLink "Rectangle"}}{{/crossLink}} defining the portion of the
-	 * source to draw to the frame. If not specified, it will look for a `getBounds` method, bounds property, or
-	 * `nominalBounds` property on the source to use. If one is not found, the frame will be skipped.
+	 * source to draw to the frame. If not specified, it will look for a <code>getBounds</code> method, bounds property,
+	 * or <code>nominalBounds</code> property on the source to use. If one is not found, the frame will be skipped.
 	 * @param {Number} [scale=1] Optional. The scale to draw this frame at. Default is 1.
 	 * @param {Function} [setupFunction] A function to call immediately before drawing this frame. It will be called with two parameters: the source, and setupData.
 	 * @param {Object} [setupData] Arbitrary setup data to pass to setupFunction as the second parameter.
@@ -11209,44 +10410,38 @@ createjs.indexOf = function (array, searchElement){
 	};
 
 	/**
-	 * Adds an animation that will be included in the created {{#crossLink "SpriteSheet"}}{{/crossLink}}.
+	 * Adds an animation that will be included in the created sprite sheet.
 	 * @method addAnimation
 	 * @param {String} name The name for the animation.
 	 * @param {Array} frames An array of frame indexes that comprise the animation. Ex. [3,6,5] would describe an animation
 	 * that played frame indexes 3, 6, and 5 in that order.
 	 * @param {String} [next] Specifies the name of the animation to continue to after this animation ends. You can
 	 * also pass false to have the animation stop when it ends. By default it will loop to the start of the same animation.
-	 * @param {Number} [speed] Specifies a frame advance speed for this animation. For example, a value of 0.5 would
-	 * cause the animation to advance every second tick. Note that earlier versions used `frequency` instead, which had
-	 * the opposite effect.
+	 * @param {Number} [frequency] Specifies a frame advance frequency for this animation. For example, a value
+	 * of 2 would cause the animation to advance every second tick.
 	 **/
-	p.addAnimation = function(name, frames, next, speed) {
+	p.addAnimation = function(name, frames, next, frequency) {
 		if (this._data) { throw SpriteSheetBuilder.ERR_RUNNING; }
-		this._animations[name] = {frames:frames, next:next, speed:speed};
+		this._animations[name] = {frames:frames, next:next, frequency:frequency};
 	};
 
 	/**
-	 * This will take a {{#crossLink "MovieClip"}}{{/crossLink}} instance, and add its frames and labels to this
-	 * builder. Labels will be added as an animation running from the label index to the next label. For example, if
-	 * there is a label named "foo" at frame 0 and a label named "bar" at frame 10, in a MovieClip with 15 frames, it
-	 * will add an animation named "foo" that runs from frame index 0 to 9, and an animation named "bar" that runs from
-	 * frame index 10 to 14.
+	 * This will take a MovieClip instance, and add its frames and labels to this builder. Labels will be added as an animation
+	 * running from the label index to the next label. For example, if there is a label named "foo" at frame 0 and a label
+	 * named "bar" at frame 10, in a MovieClip with 15 frames, it will add an animation named "foo" that runs from frame
+	 * index 0 to 9, and an animation named "bar" that runs from frame index 10 to 14.
 	 *
-	 * Note that this will iterate through the full MovieClip with {{#crossLink "MovieClip/actionsEnabled:property"}}{{/crossLink}}
-	 * set to `false`, ending on the last frame.
+	 * Note that this will iterate through the full MovieClip with actionsEnabled set to false, ending on the last frame.
 	 * @method addMovieClip
-	 * @param {MovieClip} source The source MovieClip instance to add to the SpriteSheet.
+	 * @param {MovieClip} source The source MovieClip instance to add to the sprite sheet.
 	 * @param {Rectangle} [sourceRect] A {{#crossLink "Rectangle"}}{{/crossLink}} defining the portion of the source to
-	 * draw to the frame. If not specified, it will look for a {{#crossLink "DisplayObject/getBounds"}}{{/crossLink}}
-	 * method, `frameBounds` Array, `bounds` property, or `nominalBounds` property on the source to use. If one is not
+	 * draw to the frame. If not specified, it will look for a <code>getBounds</code> method, <code>frameBounds</code>
+	 * Array, <code>bounds</code> property, or <code>nominalBounds</code> property on the source to use. If one is not
 	 * found, the MovieClip will be skipped.
 	 * @param {Number} [scale=1] The scale to draw the movie clip at.
-	 * @param {Function} [setupFunction] A function to call immediately before drawing each frame. It will be called
-	 * with three parameters: the source, setupData, and the frame index.
+	 * @param {Function} [setupFunction] A function to call immediately before drawing each frame. It will be called with three parameters: the source, setupData, and the frame index.
 	 * @param {Object} [setupData] Arbitrary setup data to pass to setupFunction as the second parameter.
-	 * @param {Function} [labelFunction] This method will be called for each MovieClip label that is added with four
-	 * parameters: the label name, the source MovieClip instance, the starting frame index (in the movieclip timeline)
-	 * and the end index. It must return a new name for the label/animation, or `false` to exclude the label.
+	 * @param {Function} [labelFunction] This method will be called for each movieclip label that is added with four parameters: the label name, the source movieclip instance, the starting frame index (in the movieclip timeline) and the end index. It must return a new name for the label/animation, or false to exclude the label.
 	 **/
 	p.addMovieClip = function(source, sourceRect, scale, setupFunction, setupData, labelFunction) {
 		if (this._data) { throw SpriteSheetBuilder.ERR_RUNNING; }
@@ -11284,10 +10479,9 @@ createjs.indexOf = function (array, searchElement){
 	};
 
 	/**
-	 * Builds a {{#crossLink "SpriteSheet"}}{{/crossLink}} instance based on the current frames.
+	 * Builds a SpriteSheet instance based on the current frames.
 	 * @method build
-	 * @return {SpriteSheet} The created SpriteSheet instance, or null if a build is already running or an error
-	 * occurred.
+	 * @return {SpriteSheet} The created SpriteSheet instance, or null if a build is already running or an error occurred.
 	 **/
 	p.build = function() {
 		if (this._data) { throw SpriteSheetBuilder.ERR_RUNNING; }
@@ -11299,8 +10493,8 @@ createjs.indexOf = function (array, searchElement){
 
 	/**
 	 * Asynchronously builds a {{#crossLink "SpriteSheet"}}{{/crossLink}} instance based on the current frames. It will
-	 * run 20 times per second, using an amount of time defined by `timeSlice`. When it is complete it will call the
-	 * specified callback.
+	 * run 20 times per second, using an amount of time defined by <code>timeSlice</code>. When it is complete it will
+	 * call the specified callback.
 	 * @method buildAsync
 	 * @param {Number} [timeSlice] Sets the timeSlice property on this instance.
 	 **/
@@ -11354,7 +10548,6 @@ createjs.indexOf = function (array, searchElement){
 		this._data = {
 			images: [],
 			frames: dataFrames,
-			framerate: this.framerate,
 			animations: this._animations // TODO: should we "clone" _animations in case someone adds more animations after a build?
 		};
 
@@ -11777,7 +10970,8 @@ createjs.indexOf = function (array, searchElement){
 	 * will cause an object to feather outwards, resulting in a margin around the shape.
 	 *
 	 * <h4>EaselJS Filters</h4>
-	 * EaselJS comes with a number of pre-built filters:
+	 * EaselJS comes with a number of pre-built filters. Note that individual filters are not compiled into the minified
+	 * version of EaselJS. To use them, you must include them manually in the HTML.
 	 * <ul><li>{{#crossLink "AlphaMapFilter"}}{{/crossLink}} : Map a greyscale image to the alpha channel of a display object</li>
 	 *      <li>{{#crossLink "AlphaMaskFilter"}}{{/crossLink}}: Map an image's alpha channel to the alpha channel of a display object</li>
 	 *      <li>{{#crossLink "BlurFilter"}}{{/crossLink}}: Apply vertical and horizontal blur to a display object</li>
@@ -13328,7 +12522,7 @@ createjs.indexOf = function (array, searchElement){
 	 * @type String
 	 * @static
 	 **/
-	s.version = /*=version*/"0.8.2"; // injected by build process
+	s.version = /*=version*/"0.8.1"; // injected by build process
 
 	/**
 	 * The build date for this release in UTC format.
@@ -13336,7 +12530,7 @@ createjs.indexOf = function (array, searchElement){
 	 * @type String
 	 * @static
 	 **/
-	s.buildDate = /*=date*/"Thu, 26 Nov 2015 20:44:34 GMT"; // injected by build process
+	s.buildDate = /*=date*/"Thu, 21 May 2015 16:17:39 GMT"; // injected by build process
 
 })();
 
@@ -13359,7 +12553,7 @@ createjs.indexOf = function (array, searchElement){
 	 * @type {String}
 	 * @static
 	 **/
-	s.version = /*=version*/"0.6.2"; // injected by build process
+	s.version = /*=version*/"0.6.1"; // injected by build process
 
 	/**
 	 * The build date for this release in UTC format.
@@ -13367,7 +12561,7 @@ createjs.indexOf = function (array, searchElement){
 	 * @type {String}
 	 * @static
 	 **/
-	s.buildDate = /*=date*/"Thu, 26 Nov 2015 20:44:31 GMT"; // injected by build process
+	s.buildDate = /*=date*/"Thu, 21 May 2015 16:17:37 GMT"; // injected by build process
 
 })();
 
@@ -13418,6 +12612,55 @@ createjs.indexOf = function (array, searchElement){
 			return method.apply(scope, Array.prototype.slice.call(arguments, 0).concat(aArgs));
 		};
 	}
+
+}());
+
+//##############################################################################
+// BrowserDetect.js
+//##############################################################################
+
+/**
+ * @class Utility Methods
+ */
+(function() {
+	"use strict";
+
+	/**
+	 * An object that determines the current browser, version, operating system, and other environment
+	 * variables via user agent string.
+	 *
+	 * Used for audio because feature detection is unable to detect the many limitations of mobile devices.
+	 *
+	 * <h4>Example</h4>
+	 *
+	 *      if (createjs.BrowserDetect.isIOS) { // do stuff }
+	 *
+	 * @property BrowserDetect
+	 * @type {Object}
+	 * @param {Boolean} isFirefox True if our browser is Firefox.
+	 * @param {Boolean} isOpera True if our browser is opera.
+	 * @param {Boolean} isChrome True if our browser is Chrome.  Note that Chrome for Android returns true, but is a
+	 * completely different browser with different abilities.
+	 * @param {Boolean} isIOS True if our browser is safari for iOS devices (iPad, iPhone, and iPod).
+	 * @param {Boolean} isAndroid True if our browser is Android.
+	 * @param {Boolean} isBlackberry True if our browser is Blackberry.
+	 * @constructor
+	 * @static
+	 */
+	function BrowserDetect() {
+		throw "BrowserDetect cannot be instantiated";
+	}
+
+	var agent = BrowserDetect.agent = window.navigator.userAgent;
+	BrowserDetect.isWindowPhone = (agent.indexOf("IEMobile") > -1) || (agent.indexOf("Windows Phone") > -1);
+	BrowserDetect.isFirefox = (agent.indexOf("Firefox") > -1);
+	BrowserDetect.isOpera = (window.opera != null);
+	BrowserDetect.isChrome = (agent.indexOf("Chrome") > -1);  // NOTE that Chrome on Android returns true but is a completely different browser with different abilities
+	BrowserDetect.isIOS = (agent.indexOf("iPod") > -1 || agent.indexOf("iPhone") > -1 || agent.indexOf("iPad") > -1) && !BrowserDetect.isWindowPhone;
+	BrowserDetect.isAndroid = (agent.indexOf("Android") > -1) && !BrowserDetect.isWindowPhone;
+	BrowserDetect.isBlackberry = (agent.indexOf("Blackberry") > -1);
+
+	createjs.BrowserDetect = BrowserDetect;
 
 }());
 
@@ -14857,9 +14100,9 @@ createjs.indexOf = function (array, searchElement){
 		}
 
 		if (idx != -1) {
-			return src.slice(0, idx) + '?' + this.formatQueryString(data, query);
+			return src.slice(0, idx) + '?' + this._formatQueryString(data, query);
 		} else {
-			return src + '?' + this.formatQueryString(data, query);
+			return src + '?' + this._formatQueryString(data, query);
 		}
 	};
 
@@ -15105,18 +14348,7 @@ createjs.indexOf = function (array, searchElement){
 		 * can be overridden to provide custom formatting.
 		 *
 		 * Optionally, a resultFormatter can return a callback function in cases where the formatting needs to be
-		 * asynchronous, such as creating a new image. The callback function is passed 2 parameters, which are callbacks
-		 * to handle success and error conditions in the resultFormatter. Note that the resultFormatter method is
-		 * called in the current scope, as well as the success and error callbacks.
-		 *
-		 * <h4>Example asynchronous resultFormatter</h4>
-		 *
-		 * 	function _formatResult(loader) {
-		 * 		return function(success, error) {
-		 * 			if (errorCondition) { error(errorDetailEvent); }
-		 * 			success(result);
-		 * 		}
-		 * 	}
+		 * asynchronous, such as creating a new image.
 		 * @property resultFormatter
 		 * @type {Function}
 		 * @default null
@@ -15685,11 +14917,12 @@ createjs.indexOf = function (array, searchElement){
 			case "complete":
 				this._rawResult = event.target._response;
 				var result = this.resultFormatter && this.resultFormatter(this);
+				var _this = this;
 				if (result instanceof Function) {
-					result.call(this,
-							createjs.proxy(this._resultFormatSuccess, this),
-							createjs.proxy(this._resultFormatFailed, this)
-					);
+					result(function(result) {
+						_this._result = result;
+						_this._sendComplete();
+					});
 				} else {
 					this._result =  result || this._rawResult;
 					this._sendComplete();
@@ -15707,33 +14940,10 @@ createjs.indexOf = function (array, searchElement){
 			case "abort":
 			case "timeout":
 				if (!this._isCanceled()) {
-					this.dispatchEvent(new createjs.ErrorEvent("PRELOAD_" + event.type.toUpperCase() + "_ERROR"));
+					this.dispatchEvent(event.type);
 				}
 				break;
 		}
-	};
-
-	/**
-	 * The "success" callback passed to {{#crossLink "AbstractLoader/resultFormatter"}}{{/crossLink}} asynchronous
-	 * functions.
-	 * @method _resultFormatSuccess
-	 * @param {Object} result The formatted result
-	 * @private
-	 */
-	p._resultFormatSuccess = function (result) {
-		this._result = result;
-		this._sendComplete();
-	};
-
-	/**
-	 * The "error" callback passed to {{#crossLink "AbstractLoader/resultFormatter"}}{{/crossLink}} asynchronous
-	 * functions.
-	 * @method _resultFormatSuccess
-	 * @param {Object} error The error event
-	 * @private
-	 */
-	p._resultFormatFailed = function (event) {
-		this._sendError(event);
 	};
 
 	/**
@@ -15784,8 +14994,6 @@ createjs.indexOf = function (array, searchElement){
 
 		// protected properties
 		this._tagSrcAttribute = "src";
-
-        this.on("initialize", this._updateXHR, this);
 	};
 
 	var p = createjs.extend(AbstractMediaLoader, createjs.AbstractLoader);
@@ -15821,20 +15029,6 @@ createjs.indexOf = function (array, searchElement){
 		}
 	};
 
-    // protected methods
-    /**
-     * Before the item loads, set its mimeType and responseType.
-     * @property _updateXHR
-     * @param {Event} event
-     * @private
-     */
-    p._updateXHR = function (event) {
-        // Only exists for XHR
-        if (event.loader.setResponseType) {
-            event.loader.setResponseType("blob");
-        }
-    };
-
 	/**
 	 * The result formatter for media files.
 	 * @method _formatResult
@@ -15846,10 +15040,7 @@ createjs.indexOf = function (array, searchElement){
 		this._tag.removeEventListener && this._tag.removeEventListener("canplaythrough", this._loadedHandler);
 		this._tag.onstalled = null;
 		if (this._preferXHR) {
-            var URL = window.URL || window.webkitURL;
-            var result = loader.getResult(true);
-
-			loader.getTag().src = URL.createObjectURL(result);
+			loader.getTag().src = loader.getResult(true);
 		}
 		return loader.getTag();
 	};
@@ -16799,11 +15990,10 @@ createjs.indexOf = function (array, searchElement){
 	 *     <li>{{#crossLink "AbstractLoader/MANIFEST:property"}}{{/crossLink}}: A list of files to load in JSON format, see
 	 *     {{#crossLink "AbstractLoader/loadManifest"}}{{/crossLink}}</li>
 	 *     <li>{{#crossLink "AbstractLoader/SOUND:property"}}{{/crossLink}}: Audio file formats</li>
-	 *     <li>{{#crossLink "AbstractLoader/SPRITESHEET:property"}}{{/crossLink}}: JSON SpriteSheet definitions. This
+	 *     <li>{{#crossLink "AbstractLoader/SPRITESHEET:property"}}{{/crossLink}}: JSON SpriteSheet definiteions. This
 	 *     will also load sub-images, and provide a {{#crossLink "SpriteSheet"}}{{/crossLink}} instance.</li>
 	 *     <li>{{#crossLink "AbstractLoader/SVG:property"}}{{/crossLink}}: SVG files</li>
 	 *     <li>{{#crossLink "AbstractLoader/TEXT:property"}}{{/crossLink}}: Text files - XHR only</li>
-     *     <li>{{#crossLink "AbstractLoader/VIDEO:property"}}{{/crossLink}}: Video objects</li>
 	 *     <li>{{#crossLink "AbstractLoader/XML:property"}}{{/crossLink}}: XML data</li>
 	 * </ul>
 	 *
@@ -16826,7 +16016,6 @@ createjs.indexOf = function (array, searchElement){
 	 *     <li>SpriteSheet: A {{#crossLink "SpriteSheet"}}{{/crossLink}} instance, containing loaded images.
 	 *     <li>SVG: An &lt;object /&gt; tag</li>
 	 *     <li>Text: Raw text</li>
-     *     <li>Video: A Video DOM node</li>
 	 *     <li>XML: An XML DOM node</li>
 	 * </ul>
 	 *
@@ -17012,7 +16201,7 @@ createjs.indexOf = function (array, searchElement){
 			createjs.SVGLoader,
 			createjs.BinaryLoader,
 			createjs.VideoLoader,
-			createjs.TextLoader
+			createjs.TextLoader,
 		];
 
 		/**
@@ -17415,13 +16604,6 @@ createjs.indexOf = function (array, searchElement){
 	 * object will contain that value as a property.
 	 */
 
-	/**
-	 * Although it extends {{#crossLink "AbstractLoader"}}{{/crossLink}}, the `initialize` event is never fired from
-	 * a LoadQueue instance.
-	 * @event initialize
-	 * @private
-	 */
-
 // public methods
 	/**
 	 * Register a custom loaders class. New loaders are given precedence over loaders added earlier and default loaders.
@@ -17442,7 +16624,7 @@ createjs.indexOf = function (array, searchElement){
 	};
 
 	/**
-	 * Remove a custom loader added using {{#crossLink "registerLoader"}}{{/crossLink}}. Only custom loaders can be
+	 * Remove a custom loader added usig {{#crossLink "registerLoader"}}{{/crossLink}}. Only custom loaders can be
 	 * unregistered, the default loaders will always be available.
 	 * @method unregisterLoader
 	 * @param {Function|AbstractLoader} loader The AbstractLoader class to remove
@@ -17460,8 +16642,8 @@ createjs.indexOf = function (array, searchElement){
 	 * @return {Boolean} The new useXHR value. If XHR is not supported by the browser, this will return false, even if
 	 * the provided value argument was true.
 	 * @since 0.3.0
-	 * @deprecated use the {{#crossLink "LoadQueue/preferXHR:property"}}{{/crossLink}} property, or the
-	 * {{#crossLink "LoadQueue/setUseXHR"}}{{/crossLink}} method instead.
+	 * @deprecated use the {{#crossLink "preferXHR:property"}}{{/crossLink}} property, or the {{#crossLink "setUseXHR"}}{{/crossLink}}
+	 * method instead.
 	 */
 	p.setUseXHR = function (value) {
 		return this.setPreferXHR(value);
@@ -17515,7 +16697,7 @@ createjs.indexOf = function (array, searchElement){
 	p.remove = function (idsOrUrls) {
 		var args = null;
 
-		if (idsOrUrls && !Array.isArray(idsOrUrls)) {
+		if (idsOrUrls && !(idsOrUrls instanceof Array)) {
 			args = [idsOrUrls];
 		} else if (idsOrUrls) {
 			args = idsOrUrls;
@@ -17749,7 +16931,7 @@ createjs.indexOf = function (array, searchElement){
 		var path = null;
 
 		// Array-based list of items
-		if (Array.isArray(manifest)) {
+		if (manifest instanceof Array) {
 			if (manifest.length == 0) {
 				var event = new createjs.ErrorEvent("PRELOAD_MANIFEST_EMPTY");
 				this._sendError(event);
@@ -18370,8 +17552,7 @@ createjs.indexOf = function (array, searchElement){
 		// Since LoadQueue needs maintain order, we can't append scripts in the loader.
 		// So we do it here instead. Or in _checkScriptLoadOrder();
 		if (!this.maintainScriptOrder && item.type == createjs.LoadQueue.JAVASCRIPT) {
-			var tag = loader.getTag();
-			createjs.DomUtils.appendToHead(tag);
+			createjs.DomUtils.appendToHead(item.result);
 		}
 
 		this._updateProgress();
@@ -18844,57 +18025,31 @@ createjs.indexOf = function (array, searchElement){
 	 * @private
 	 */
 	p._formatResult = function (loader) {
-		return this._formatImage;
-	};
+		var _this = this;
+		return function (done) {
+			var tag = _this._tag;
+			var URL = window.URL || window.webkitURL;
 
-	/**
-	 * The asynchronous image formatter function. This is required because images have
-	 * a short delay before they are ready.
-	 * @method _formatImage
-	 * @param {Function} successCallback The method to call when the result has finished formatting
-	 * @param {Function} errorCallback The method to call if an error occurs during formatting
-	 * @private
-	 */
-	p._formatImage = function (successCallback, errorCallback) {
-		var tag = this._tag;
-		var URL = window.URL || window.webkitURL;
+			if (!_this._preferXHR) {
+				//document.body.removeChild(tag);
+			} else if (URL) {
+				var objURL = URL.createObjectURL(loader.getResult(true));
+				tag.src = objURL;
+				tag.onload = function () {
+					URL.revokeObjectURL(_this.src);
+				}
+			} else {
+				tag.src = loader.getItem().src;
+			}
 
-		if (!this._preferXHR) {
-			//document.body.removeChild(tag);
-		} else if (URL) {
-			var objURL = URL.createObjectURL(this.getResult(true));
-			tag.src = objURL;
-
-			tag.addEventListener("load", this._cleanUpURL, false);
-			tag.addEventListener("error", this._cleanUpURL, false);
-		} else {
-			tag.src = this._item.src;
-		}
-
-		if (tag.complete) {
-			successCallback(tag);
-		} else {
-            tag.onload = createjs.proxy(function() {
-                successCallback(this._tag);
-            }, this);
-
-            tag.onerror = createjs.proxy(function() {
-                errorCallback(_this._tag);
-            }, this);
-		}
-	};
-
-	/**
-	 * Clean up the ObjectURL, the tag is done with it. Note that this function is run
-	 * as an event listener without a proxy/closure, as it doesn't require it - so do not
-	 * include any functionality that requires scope without changing it.
-	 * @method _cleanUpURL
-	 * @param event
-	 * @private
-	 */
-	p._cleanUpURL = function (event) {
-		var URL = window.URL || window.webkitURL;
-		URL.revokeObjectURL(event.target.src);
+			if (tag.complete) {
+				done(tag);
+			} else {
+				tag.onload = function () {
+					done(this);
+				}
+			}
+		};
 	};
 
 	createjs.ImageLoader = createjs.promote(ImageLoader, "AbstractLoader");
@@ -19001,7 +18156,7 @@ createjs.indexOf = function (array, searchElement){
 	 * @static
 	 */
 	s.canLoadItem = function (item) {
-		return item.type == createjs.AbstractLoader.JSON;
+		return item.type == createjs.AbstractLoader.JSON && !item._loadAsJSONP;
 	};
 
 	// protected methods
@@ -19043,34 +18198,9 @@ createjs.indexOf = function (array, searchElement){
 	 * use {{#crossLink "ManifestLoader"}}{{/crossLink}}, and to load EaselJS SpriteSheets, use
 	 * {{#crossLink "SpriteSheetLoader"}}{{/crossLink}}.
 	 *
-	 * JSONP is a format that provides a solution for loading JSON files cross-domain <em>without</em> requiring CORS.
-	 * JSONP files are loaded as JavaScript, and the "callback" is executed once they are loaded. The callback in the
-	 * JSONP must match the callback passed to the loadItem.
-	 *
-	 * <h4>Example JSONP</h4>
-	 *
-	 * 		callbackName({
-	 * 			"name": "value",
-	 *	 		"num": 3,
-	 *			"obj": { "bool":true }
-	 * 		});
-	 *
-	 * <h4>Example</h4>
-	 *
-	 * 		var loadItem = {id:"json", type:"jsonp", src:"http://server.com/text.json", callback:"callbackName"}
-	 * 		var queue = new createjs.LoadQueue();
-	 * 		queue.on("complete", handleComplete);
-	 * 		queue.loadItem(loadItem);
-	 *
-	 * 		function handleComplete(event) }
-	 * 			var json = queue.getResult("json");
-	 * 			console.log(json.obj.bool); // true
-	 * 		}
-	 *
 	 * Note that JSONP files loaded concurrently require a <em>unique</em> callback. To ensure JSONP files are loaded
 	 * in order, either use the {{#crossLink "LoadQueue/setMaxConnections"}}{{/crossLink}} method (set to 1),
 	 * or set {{#crossLink "LoadItem/maintainOrder:property"}}{{/crossLink}} on items with the same callback.
-	 *
 	 * @class JSONPLoader
 	 * @param {LoadItem|Object} loadItem
 	 * @extends AbstractLoader
@@ -19096,7 +18226,7 @@ createjs.indexOf = function (array, searchElement){
 	 * @static
 	 */
 	s.canLoadItem = function (item) {
-		return item.type == createjs.AbstractLoader.JSONP;
+		return item.type == createjs.AbstractLoader.JSONP || item._loadAsJSONP;
 	};
 
 	// public methods
@@ -19106,7 +18236,7 @@ createjs.indexOf = function (array, searchElement){
 	};
 
 	/**
-	 * Loads the JSONp file.  Because of the unique loading needs of JSONp
+	 * Loads the JSONp file.  Because of the unique loading needs of jsonP
 	 * we don't use the AbstractLoader.load() method.
 	 *
 	 * @method load
@@ -19517,23 +18647,13 @@ createjs.indexOf = function (array, searchElement){
 	 * and {{#crossLink "JSONPLoader"}}{{/crossLink}} are higher priority loaders, so SpriteSheets <strong>must</strong>
 	 * set the {{#crossLink "LoadItem"}}{{/crossLink}} {{#crossLink "LoadItem/type:property"}}{{/crossLink}} property
 	 * to {{#crossLink "AbstractLoader/SPRITESHEET:property"}}{{/crossLink}}.
-	 *
-	 * The {{#crossLink "LoadItem"}}{{/crossLink}} {{#crossLink "LoadItem/crossOrigin:property"}}{{/crossLink}} as well
-	 * as the {{#crossLink "LoadQueue's"}}{{/crossLink}} `basePath` argument and {{#crossLink "LoadQueue/_preferXHR"}}{{/crossLink}}
-	 * property supplied to the {{#crossLink "LoadQueue"}}{{/crossLink}} are passed on to the sub-manifest that loads
-	 * the SpriteSheet images.
-	 *
-	 * Note that the SpriteSheet JSON does not respect the {{#crossLink "LoadQueue/_preferXHR:property"}}{{/crossLink}}
-	 * property, which should instead be determined by the presence of a {{#crossLink "LoadItem/callback:property"}}{{/crossLink}}
-	 * property on the SpriteSheet load item. This is because the JSON loaded will have a different format depending on
-	 * if it is loaded as JSON, so just changing `preferXHR` is not enough to change how it is loaded.
 	 * @class SpriteSheetLoader
 	 * @param {LoadItem|Object} loadItem
 	 * @extends AbstractLoader
 	 * @constructor
 	 */
-	function SpriteSheetLoader(loadItem, preferXHR) {
-		this.AbstractLoader_constructor(loadItem, preferXHR, createjs.AbstractLoader.SPRITESHEET);
+	function SpriteSheetLoader(loadItem) {
+		this.AbstractLoader_constructor(loadItem, null, createjs.AbstractLoader.SPRITESHEET);
 
 		// protected properties
 		/**
@@ -19581,7 +18701,7 @@ createjs.indexOf = function (array, searchElement){
 	// protected methods
 	p._createRequest = function() {
 		var callback = this._item.callback;
-		if (callback != null) {
+		if (callback != null && callback instanceof Function) {
 			this._request = new createjs.JSONPLoader(this._item);
 		} else {
 			this._request = new createjs.JSONLoader(this._item);
@@ -19614,7 +18734,7 @@ createjs.indexOf = function (array, searchElement){
 	 */
 	p._loadManifest = function (json) {
 		if (json && json.images) {
-			var queue = this._manifestQueue = new createjs.LoadQueue(this._preferXHR, this._item.path, this._item.crossOrigin);
+			var queue = this._manifestQueue = new createjs.LoadQueue();
 			queue.on("complete", this._handleManifestComplete, this, true);
 			queue.on("fileload", this._handleManifestFileLoad, this);
 			queue.on("progress", this._handleManifestProgress, this);
@@ -19831,7 +18951,7 @@ createjs.indexOf = function (array, searchElement){
 	 * @type String
 	 * @static
 	 **/
-	s.version = /*=version*/"0.6.2"; // injected by build process
+	s.version = /*=version*/"0.6.1"; // injected by build process
 
 	/**
 	 * The build date for this release in UTC format.
@@ -19839,7 +18959,7 @@ createjs.indexOf = function (array, searchElement){
 	 * @type String
 	 * @static
 	 **/
-	s.buildDate = /*=date*/"Thu, 26 Nov 2015 20:44:31 GMT"; // injected by build process
+	s.buildDate = /*=date*/"Thu, 21 May 2015 16:17:37 GMT"; // injected by build process
 
 })();
 
@@ -19920,55 +19040,6 @@ createjs.indexOf = function (array, searchElement){
 			return method.apply(scope, Array.prototype.slice.call(arguments, 0).concat(aArgs));
 		};
 	}
-
-}());
-
-//##############################################################################
-// BrowserDetect.js
-//##############################################################################
-
-/**
- * @class Utility Methods
- */
-(function() {
-	"use strict";
-
-	/**
-	 * An object that determines the current browser, version, operating system, and other environment
-	 * variables via user agent string.
-	 *
-	 * Used for audio because feature detection is unable to detect the many limitations of mobile devices.
-	 *
-	 * <h4>Example</h4>
-	 *
-	 *      if (createjs.BrowserDetect.isIOS) { // do stuff }
-	 *
-	 * @property BrowserDetect
-	 * @type {Object}
-	 * @param {Boolean} isFirefox True if our browser is Firefox.
-	 * @param {Boolean} isOpera True if our browser is opera.
-	 * @param {Boolean} isChrome True if our browser is Chrome.  Note that Chrome for Android returns true, but is a
-	 * completely different browser with different abilities.
-	 * @param {Boolean} isIOS True if our browser is safari for iOS devices (iPad, iPhone, and iPod).
-	 * @param {Boolean} isAndroid True if our browser is Android.
-	 * @param {Boolean} isBlackberry True if our browser is Blackberry.
-	 * @constructor
-	 * @static
-	 */
-	function BrowserDetect() {
-		throw "BrowserDetect cannot be instantiated";
-	};
-
-	var agent = BrowserDetect.agent = window.navigator.userAgent;
-	BrowserDetect.isWindowPhone = (agent.indexOf("IEMobile") > -1) || (agent.indexOf("Windows Phone") > -1);
-	BrowserDetect.isFirefox = (agent.indexOf("Firefox") > -1);
-	BrowserDetect.isOpera = (window.opera != null);
-	BrowserDetect.isChrome = (agent.indexOf("Chrome") > -1);  // NOTE that Chrome on Android returns true but is a completely different browser with different abilities
-	BrowserDetect.isIOS = (agent.indexOf("iPod") > -1 || agent.indexOf("iPhone") > -1 || agent.indexOf("iPad") > -1) && !BrowserDetect.isWindowPhone;
-	BrowserDetect.isAndroid = (agent.indexOf("Android") > -1) && !BrowserDetect.isWindowPhone;
-	BrowserDetect.isBlackberry = (agent.indexOf("Blackberry") > -1);
-
-	createjs.BrowserDetect = BrowserDetect;
 
 }());
 
@@ -20235,12 +19306,12 @@ createjs.indexOf = function (array, searchElement){
 	 *      createjs.FlashAudioPlugin.swfPath = "../src/soundjs/flashaudio";
 	 *      createjs.Sound.registerPlugins([createjs.WebAudioPlugin, createjs.FlashAudioPlugin]);
 	 *      createjs.Sound.alternateExtensions = ["mp3"];
-	 *      createjs.Sound.on("fileload", this.loadHandler, this);
+	 *      createjs.Sound.on("fileload", createjs.proxy(this.loadHandler, (this)));
 	 *      createjs.Sound.registerSound("path/to/mySound.ogg", "sound");
 	 *      function loadHandler(event) {
      *          // This is fired for each sound that is registered.
      *          var instance = createjs.Sound.play("sound");  // play using id.  Could also use full source path or event.src.
-     *          instance.on("complete", this.handleComplete, this);
+     *          instance.on("complete", createjs.proxy(this.handleComplete, this));
      *          instance.volume = 0.5;
 	 *      }
 	 *
@@ -20253,9 +19324,9 @@ createjs.indexOf = function (array, searchElement){
 	 *
 	 * Sound can be used as a plugin with PreloadJS to help preload audio properly. Audio preloaded with PreloadJS is
 	 * automatically registered with the Sound class. When audio is not preloaded, Sound will do an automatic internal
-	 * load. As a result, it may fail to play the first time play is called if the audio is not finished loading. Use
-	 * the {{#crossLink "Sound/fileload:event"}}{{/crossLink}} event to determine when a sound has finished internally
-	 * preloading. It is recommended that all audio is preloaded before it is played.
+	 * load. As a result, it may fail to play the first time play is called if the audio is not finished loading. Use the
+	 * {{#crossLink "Sound/fileload"}}{{/crossLink}} event to determine when a sound has finished internally preloading.
+	 * It is recommended that all audio is preloaded before it is played.
 	 *
 	 *      var queue = new createjs.LoadQueue();
 	 *		queue.installPlugin(createjs.Sound);
@@ -20283,47 +19354,28 @@ createjs.indexOf = function (array, searchElement){
 	 *		// after load is complete
 	 *		createjs.Sound.play("sound2");
 	 *
-	 * <b>Mobile Playback</b><br />
-	 * Devices running iOS require the WebAudio context to be "unlocked" by playing at least one sound inside of a user-
-	 * initiated event (such as touch/click). Earlier versions of SoundJS included a "MobileSafe" sample, but this is no
-	 * longer necessary as of SoundJS 0.6.2.
-	 * <ul>
-	 *     <li>
-	 *         In SoundJS 0.4.1 and above, you can either initialize plugins or use the {{#crossLink "WebAudioPlugin/playEmptySound"}}{{/crossLink}}
-	 *         method in the call stack of a user input event to manually unlock the audio context.
-	 *     </li>
-	 *     <li>
-	 *         In SoundJS 0.6.2 and above, SoundJS will automatically listen for the first document-level "mousedown"
-	 *         and "touchend" event, and unlock WebAudio. This will continue to check these events until the WebAudio
-	 *         context becomes "unlocked" (changes from "suspended" to "running")
-	 *     </li>
-	 *     <li>
-	 *         Both the "mousedown" and "touchend" events can be used to unlock audio in iOS9+, the "touchstart" event
-	 *         will work in iOS8 and below. The "touchend" event will only work in iOS9 when the gesture is interpreted
-	 *         as a "click", so if the user long-presses the button, it will no longer work.
-	 *     </li>
-	 *     <li>
-	 *         When using the <a href="http://www.createjs.com/docs/easeljs/classes/Touch.html">EaselJS Touch class</a>,
-	 *         the "mousedown" event will not fire when a canvas is clicked, since MouseEvents are prevented, to ensure
-	 *         only touch events fire. To get around this, you can either rely on "touchend", or:
-	 *         <ol>
-	 *             <li>Set the `allowDefault` property on the Touch class constructor to `true` (defaults to `false`).</li>
-	 *             <li>Set the `preventSelection` property on the EaselJS `Stage` to `false`.</li>
-	 *         </ol>
-	 *         These settings may change how your application behaves, and are not recommended.
-	 *     </li>
-	 * </ul>
+	 * <b>Mobile Safe Approach</b><br />
+	 * Mobile devices require sounds to be played inside of a user initiated event (touch/click) in varying degrees.
+	 * As of SoundJS 0.4.1, you can launch a site inside of a user initiated event and have audio playback work. To
+	 * enable as broadly as possible, the site needs to setup the Sound plugin in its initialization (for example via
+	 * <code>createjs.Sound.initializeDefaultPlugins();</code>), and all sounds need to be played in the scope of the
+	 * application.  See the MobileSafe demo for a working example.
 	 *
-	 * <b>Loading Alternate Paths and Extension-less Files</b><br />
-	 * SoundJS supports loading alternate paths and extension-less files by passing an object instead of a string for
-	 * the `src` property, which is a hash using the format `{extension:"path", extension2:"path2"}`. These labels are
-	 * how SoundJS determines if the browser will support the sound. This also enables multiple formats to live in
-	 * different folders, or on CDNs, which often has completely different filenames for each file.
+	 * <h4>Example</h4>
 	 *
+	 *     document.getElementById("status").addEventListener("click", handleTouch, false);    // works on Android and iPad
+	 *     function handleTouch(event) {
+	 *         document.getElementById("status").removeEventListener("click", handleTouch, false);    // remove the listener
+	 *         var thisApp = new myNameSpace.MyApp();    // launch the app
+	 *     }
+	 *
+	 * <b>Loading Alternate Paths and Extensionless Files</b><br />
+	 * SoundJS supports loading alternate paths and extensionless files by passing an object for src that has various paths
+	 * with property labels matching the extension.  These labels are how SoundJS determines if the browser will support the sound.
 	 * Priority is determined by the property order (first property is tried first).  This is supported by both internal loading
 	 * and loading with PreloadJS.
 	 *
-	 * <em>Note: an id is required for playback.</em>
+	 * Note an id is required for playback.
 	 *
 	 * <h4>Example</h4>
 	 *
@@ -20336,7 +19388,7 @@ createjs.indexOf = function (array, searchElement){
 	 *		createjs.Sound.addEventListener("fileload", handleLoad);
 	 *		createjs.Sound.registerSounds(sounds);
 	 *
-	 * <h3>Known Browser and OS issues</h3>
+	 * <h4>Known Browser and OS issues</h4>
 	 * <b>IE 9 HTML Audio limitations</b><br />
 	 * <ul><li>There is a delay in applying volume changes to tags that occurs once playback is started. So if you have
 	 * muted all sounds, they will all play during this delay until the mute applies internally. This happens regardless of
@@ -20345,23 +19397,20 @@ createjs.indexOf = function (array, searchElement){
 	 * encoding with 64kbps works.</li>
 	 * <li>Occasionally very short samples will get cut off.</li>
 	 * <li>There is a limit to how many audio tags you can load and play at once, which appears to be determined by
-	 * hardware and browser settings.  See {{#crossLink "HTMLAudioPlugin.MAX_INSTANCES"}}{{/crossLink}} for a safe
-	 * estimate.</li></ul>
+	 * hardware and browser settings.  See {{#crossLink "HTMLAudioPlugin.MAX_INSTANCES"}}{{/crossLink}} for a safe estimate.</li></ul>
 	 *
 	 * <b>Firefox 25 Web Audio limitations</b>
 	 * <ul><li>mp3 audio files do not load properly on all windows machines, reported
 	 * <a href="https://bugzilla.mozilla.org/show_bug.cgi?id=929969" target="_blank">here</a>. </br>
-	 * For this reason it is recommended to pass another FF supported type (ie ogg) first until this bug is resolved, if
-	 * possible.</li></ul>
+	 * For this reason it is recommended to pass another FF supported type (ie ogg) first until this bug is resolved, if possible.</li></ul>
 
 	 * <b>Safari limitations</b><br />
 	 * <ul><li>Safari requires Quicktime to be installed for audio playback.</li></ul>
 	 *
 	 * <b>iOS 6 Web Audio limitations</b><br />
-	 * <ul><li>Sound is initially locked, and must be unlocked via a user-initiated event. Please see the section on
-	 * Mobile Playback above.</li>
-	 * <li>A bug exists that will distort un-cached web audio when a video element is present in the DOM that has audio
-	 * at a different sampleRate.</li>
+	 * <ul><li>Sound is initially muted and will only unmute through play being called inside a user initiated event
+	 * (touch/click).</li>
+	 * <li>A bug exists that will distort un-cached web audio when a video element is present in the DOM that has audio at a different sampleRate.</li>
 	 * </ul>
 	 *
 	 * <b>Android HTML Audio limitations</b><br />
@@ -20370,8 +19419,8 @@ createjs.indexOf = function (array, searchElement){
 	 * a delay.</li></ul>
 	 *
 	 * <b>Web Audio and PreloadJS</b><br />
-	 * <ul><li>Web Audio must be loaded through XHR, therefore when used with PreloadJS, tag loading is not possible.
-	 * This means that tag loading can not be used to avoid cross domain issues.</li><ul>
+	 * <ul><li>Web Audio must be loaded through XHR, therefore when used with PreloadJS tag loading is not possible.  This means that tag loading cannot
+	 * be used to avoid cross domain issues if WebAudioPlugin is used</li><ul>
 	 *
 	 * @class Sound
 	 * @static
@@ -22114,7 +21163,7 @@ createjs.indexOf = function (array, searchElement){
 		});
 
 		/**
-		 * Sets or gets the length of the audio clip, value is in milliseconds.
+		 * The length of the audio clip, in milliseconds.
 		 *
 		 * @property duration
 		 * @type {Number}
@@ -22173,7 +21222,7 @@ createjs.indexOf = function (array, searchElement){
 		});
 
 		/**
-		 * Mutes or unmutes the current audio instance.
+		 * Determines if the audio is currently muted.
 		 *
 		 * @property muted
 		 * @type {Boolean}
@@ -22187,7 +21236,7 @@ createjs.indexOf = function (array, searchElement){
 		});
 
 		/**
-		 * Pauses or resumes the current audio instance.
+		 * Tells you if the audio is currently paused.
 		 *
 		 * @property paused
 		 * @type {Boolean}
@@ -22304,9 +21353,7 @@ createjs.indexOf = function (array, searchElement){
 
 	/**
 	 * Stop playback of the instance. Stopped sounds will reset their position to 0, and calls to {{#crossLink "AbstractSoundInstance/resume"}}{{/crossLink}}
-	 * will fail. To start playback again, call {{#crossLink "AbstractSoundInstance/play"}}{{/crossLink}}.
-     *
-     * If you don't want to lose your position use yourSoundInstance.paused = true instead. {{#crossLink "AbstractSoundInstance/paused"}}{{/crossLink}}.
+	 * will fail.  To start playback again, call {{#crossLink "AbstractSoundInstance/play"}}{{/crossLink}}.
 	 *
 	 * <h4>Example</h4>
 	 *
@@ -23012,7 +22059,7 @@ createjs.indexOf = function (array, searchElement){
 		this._audioSources[loadItem.src] = true;
 		this._soundInstances[loadItem.src] = [];
 		loader = new this._loaderClass(loadItem);
-		loader.on("complete", this._handlePreloadComplete, this);
+		loader.on("complete", createjs.proxy(this._handlePreloadComplete, this));
 		this._loaders[loadItem.src] = loader;
 		return loader;
 	};
@@ -23024,7 +22071,7 @@ createjs.indexOf = function (array, searchElement){
 	 * @param {Loader} loader The sound URI to load.
 	 */
 	p.preload = function (loader) {
-		loader.on("error", this._handlePreloadError, this);
+		loader.on("error", createjs.proxy(this._handlePreloadError, this));
 		loader.load();
 	};
 
@@ -23358,16 +22405,6 @@ createjs.indexOf = function (array, searchElement){
 
 	/**
 	 * Note this is only intended for use by advanced users.
-	 * <br />The scratch buffer that will be assigned to the buffer property of a source node on close.  
-	 * This is and should be the same scratch buffer referenced by {{#crossLink "WebAudioPlugin"}}{{/crossLink}}.
-  	 * @property _scratchBuffer
-	 * @type {AudioBufferSourceNode}
-	 * @static
-	 */
-	s._scratchBuffer = null;
-
-	/**
-	 * Note this is only intended for use by advanced users.
 	 * <br /> Audio node from WebAudioPlugin that sequences to <code>context.destination</code>
 	 * @property destinationNode
 	 * @type {AudioNode}
@@ -23447,9 +22484,6 @@ createjs.indexOf = function (array, searchElement){
 		if(audioNode) {
 			audioNode.stop(0);
 			audioNode.disconnect(0);
-			// necessary to prevent leak on iOS Safari 7-9. will throw in almost all other
-			// browser implementations.
-			try { audioNode.buffer = s._scratchBuffer; } catch(e) {}
 			audioNode = null;
 		}
 		return audioNode;
@@ -23566,29 +22600,18 @@ createjs.indexOf = function (array, searchElement){
 
 	 * <h4>Known Browser and OS issues for Web Audio</h4>
 	 * <b>Firefox 25</b>
-	 * <li>
-	 *     mp3 audio files do not load properly on all windows machines, reported <a href="https://bugzilla.mozilla.org/show_bug.cgi?id=929969" target="_blank">here</a>.
-	 *     <br />For this reason it is recommended to pass another FireFox-supported type (i.e. ogg) as the default
-	 *     extension, until this bug is resolved
-	 * </li>
-	 *
+	 * <ul><li>mp3 audio files do not load properly on all windows machines, reported
+	 * <a href="https://bugzilla.mozilla.org/show_bug.cgi?id=929969" target="_blank">here</a>. </br>
+	 * For this reason it is recommended to pass another FF supported type (ie ogg) first until this bug is resolved, if possible.</li></ul>
+	 * <br />
 	 * <b>Webkit (Chrome and Safari)</b>
-	 * <li>
-	 *     AudioNode.disconnect does not always seem to work.  This can cause the file size to grow over time if you
-	 * 	   are playing a lot of audio files.
-	 * </li>
-	 *
+	 * <ul><li>AudioNode.disconnect does not always seem to work.  This can cause the file size to grow over time if you
+	 * are playing a lot of audio files.</li></ul>
+	 * <br />
 	 * <b>iOS 6 limitations</b>
-	 * <ul>
-	 *     <li>
-	 *         Sound is initially muted and will only unmute through play being called inside a user initiated event
-	 *         (touch/click). Please read the mobile playback notes in the the {{#crossLink "Sound"}}{{/crossLink}}
-	 *         class for a full overview of the limitations, and how to get around them.
-	 *     </li>
-	 *	   <li>
-	 *	       A bug exists that will distort un-cached audio when a video element is present in the DOM. You can avoid
-	 *	       this bug by ensuring the audio and video audio share the same sample rate.
-	 *	   </li>
+	 * 	<ul><li>Sound is initially muted and will only unmute through play being called inside a user initiated event (touch/click).</li>
+	 *	<li>A bug exists that will distort uncached audio when a video element is present in the DOM.  You can avoid this bug
+	 * 	by ensuring the audio and video audio share the same sampleRate.</li>
 	 * </ul>
 	 * @class WebAudioPlugin
 	 * @extends AbstractPlugin
@@ -23686,30 +22709,6 @@ createjs.indexOf = function (array, searchElement){
 	 */
 	s.context = null;
 
-	/**
-	 * The scratch buffer that will be assigned to the buffer property of a source node on close.
-	 * Works around an iOS Safari bug: https://github.com/CreateJS/SoundJS/issues/102
-	 *
-	 * Advanced users can set this to an existing source node, but <b>must</b> do so before they call
-	 * {{#crossLink "Sound/registerPlugins"}}{{/crossLink}} or {{#crossLink "Sound/initializeDefaultPlugins"}}{{/crossLink}}.
-	 *
-	 * @property _scratchBuffer
-	 * @type {AudioBuffer}
-	 * @protected
-	 * @static
-	 */
-	 s._scratchBuffer = null;
-
-	/**
-	 * Indicated whether audio on iOS has been unlocked, which requires a touchend/mousedown event that plays an
-	 * empty sound.
-	 * @property _unlocked
-	 * @type {boolean}
-	 * @since 0.6.2
-	 * @private
-	 */
-	s._unlocked = false;
-
 
 // Static Public Methods
 	/**
@@ -23747,7 +22746,7 @@ createjs.indexOf = function (array, searchElement){
 	s.playEmptySound = function() {
 		if (s.context == null) {return;}
 		var source = s.context.createBufferSource();
-		source.buffer = s._scratchBuffer;
+		source.buffer = s.context.createBuffer(1, 1, 22050);
 		source.connect(s.context.destination);
 		source.start(0, 0, 0);
 	};
@@ -23809,19 +22808,11 @@ createjs.indexOf = function (array, searchElement){
 				return null;
 			}
 		}
-		if (s._scratchBuffer == null) {
-			s._scratchBuffer = s.context.createBuffer(1, 1, 22050);
-		}
 
 		s._compatibilitySetUp();
 
-		// Listen for document level clicks to unlock WebAudio on iOS. See the _unlock method.
-		if ("ontouchstart" in window && s.context.state != "running") {
-			s._unlock(); // When played inside of a touch event, this will enable audio on iOS immediately.
-			document.addEventListener("mousedown", s._unlock, true);
-			document.addEventListener("touchend", s._unlock, true);
-		}
-
+		// playing this inside of a touch event will enable audio on iOS, which starts muted
+		s.playEmptySound();
 
 		s._capabilities = {
 			panning:true,
@@ -23873,28 +22864,6 @@ createjs.indexOf = function (array, searchElement){
 		s._panningModel = 0;
 	};
 
-	/**
-	 * Try to unlock audio on iOS. This is triggered from either WebAudio plugin setup (which will work if inside of
-	 * a `mousedown` or `touchend` event stack), or the first document touchend/mousedown event. If it fails (touchend
-	 * will fail if the user presses for too long, indicating a scroll event instead of a click event.
-	 *
-	 * Note that earlier versions of iOS supported `touchstart` for this, but iOS9 removed this functionality. Adding
-	 * a `touchstart` event to support older platforms may preclude a `mousedown` even from getting fired on iOS9, so we
-	 * stick with `mousedown` and `touchend`.
-	 * @method _unlock
-	 * @since 0.6.2
-	 * @private
-	 */
-	s._unlock = function() {
-		if (s._unlocked) { return; }
-		s.playEmptySound();
-		if (s.context.state == "running") {
-			document.removeEventListener("mousedown", s._unlock, true);
-			document.removeEventListener("touchend", s._unlock, true);
-			s._unlocked = true;
-		}
-	};
-
 
 // Public Methods
 	p.toString = function () {
@@ -23913,7 +22882,6 @@ createjs.indexOf = function (array, searchElement){
 	p._addPropsToClasses = function() {
 		var c = this._soundInstanceClass;
 		c.context = this.context;
-		c._scratchBuffer = s._scratchBuffer;
 		c.destinationNode = this.gainNode;
 		c._panningModel = this._panningModel;
 
@@ -24049,7 +23017,7 @@ createjs.indexOf = function (array, searchElement){
 	 */
 	s.getDuration= function (src) {
 		var t = s._tags[src];
-		if (t == null || !t.duration) {return 0;}	// OJR duration is NaN if loading has not completed
+		if (t == null) {return 0;}
 		return t.duration * 1000;
 	};
 
@@ -24371,10 +23339,11 @@ createjs.indexOf = function (array, searchElement){
 		}
 	};
 
+	/*	This should never change
 	p._setDurationFromSource = function () {
 		this._duration = createjs.HTMLAudioTagPool.getDuration(this.src);
-		this._playbackResource = null;
 	};
+	*/
 
 	createjs.HTMLAudioSoundInstance = createjs.promote(HTMLAudioSoundInstance, "AbstractSoundInstance");
 }());
@@ -26595,7 +25564,7 @@ createjs.indexOf = function (array, searchElement){
 	 * @static
 	 */
 	MotionGuidePlugin.calc = function(data, ratio, target) {
-		if(data._segments == undefined){ throw("Missing critical pre-calculated information, please file a bug"); }
+		if(data._segments == undefined){ MotionGuidePlugin.validate(data); }
 		if(target == undefined){ target = {x:0, y:0, rotation:0}; }
 		var seg = data._segments;
 		var path = data.path;
@@ -26659,7 +25628,7 @@ createjs.indexOf = function (array, searchElement){
 	 * @type String
 	 * @static
 	 **/
-	s.version = /*=version*/"0.6.2"; // injected by build process
+	s.version = /*=version*/"0.6.1"; // injected by build process
 
 	/**
 	 * The build date for this release in UTC format.
@@ -26667,6 +25636,6 @@ createjs.indexOf = function (array, searchElement){
 	 * @type String
 	 * @static
 	 **/
-	s.buildDate = /*=date*/"Thu, 26 Nov 2015 20:44:31 GMT"; // injected by build process
+	s.buildDate = /*=date*/"Thu, 21 May 2015 16:17:37 GMT"; // injected by build process
 
 })();

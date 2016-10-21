@@ -1,7 +1,27 @@
 {
-	"site_path": "../CreateJS.com/",
-	"easel_path":"../EaselJS/",
-	"preload_path":"../PreloadJS/",
-	"sound_path":"../SoundJS/",
-	"tween_path":"../TweenJS/"
+  "easel_path": "libs/EaselJS",
+  "tween_path": "libs/TweenJS",
+  "sound_path": "libs/SoundJS",
+  "preload_path": "libs/PreloadJS",
+
+  "uglifyMin": {
+    "preserveComments": "function set in gulpfile",
+    "compress": {
+      "global_defs": {
+        "DEBUG": false
+      }
+    }
+  },
+
+  "uglifyNonMin": {
+    "mangle": false,
+    "preserveComments": "function set in gulpfile",
+    "compress": false
+  },
+
+  "beautify": {
+    "indent_size": 2,
+    "max_preserve_newlines": 2,
+    "space_after_anon_function": true
+  }
 }

@@ -1,6 +1,6 @@
-/*!
-* <%= pkg.name %>
-* Visit http://createjs.com/ for documentation, updates and examples.
+/*
+* @license <%= name %>
+* Visit http://createjs.com for documentation, updates and examples.
 *
 * Copyright (c) 2010 gskinner.com, inc.
 *
@@ -25,5 +25,3 @@
 * FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
 * OTHER DEALINGS IN THE SOFTWARE.
 */
-
-this.createjs = this.createjs||{};
