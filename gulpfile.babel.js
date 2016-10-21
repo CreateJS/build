@@ -54,7 +54,7 @@ const relative = /node_modules/.test(cwd) ? "../../" : "./";
 const pkg = JSON.parse(getFile(`${relative}package.json`));
 const config = defaults(JSON.parse(getFile("./config.local.json")), JSON.parse(getFile("./config.json"));
 // quickrefs
-const activeLib = pkg.name.toLowerCase();
+const activeLib = pkg.name;
 const isCombined = activeLib === "createjs";
 const paths = {
   // universal
