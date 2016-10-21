@@ -12,6 +12,7 @@ import nodeResolve from "rollup-plugin-node-resolve";
 import source from "vinyl-source-stream";
 import buffer from "vinyl-buffer";
 
+import defaults from "lodash.defaults";
 import del from "del";
 import browserSync from "browser-sync";
 import karma from "karma";
@@ -49,9 +50,9 @@ function getFile (path) {
 const cwd = process.cwd();
 // figure out of we're calling from a lib or directly
 const relative = /node_modules/.test(cwd) ? "../../" : "./";
-// get the relative package and the universal config
+// get the relative package and the universal config (overwritten by the local config)
 const pkg = JSON.parse(getFile(`${relative}package.json`));
-const config = JSON.parse(getFile("./config.json"));
+const config = defaults(JSON.parse(getFile("./config.local.json")), JSON.parse(getFile("./config.json"));
 // quickrefs
 const activeLib = pkg.name.toLowerCase();
 const isCombined = activeLib === "createjs";
@@ -67,7 +68,7 @@ const paths = {
   examples: `${relative}examples/**/*`,
   extras: `${relative}extras/**/*`,
   sourceFiles: `${relative}src/**/*.js`,
-  sourcemaps: "",
+  sourcemaps: ".",
   testConfig: `${relative}tests/karma.conf.js`,
   docsSASS: "./docsTheme/assets/scss/main.scss",
   docsCSS: "./docsTheme/assets/css/"
