@@ -1,8 +1,9 @@
 {
-  "easel_path": "libs/EaselJS",
-  "tween_path": "libs/TweenJS",
-  "sound_path": "libs/SoundJS",
-  "preload_path": "libs/PreloadJS",
+  "site_path": "../Site",
+  "easel_path": "../EaselJS",
+  "tween_path": "../TweenJS",
+  "sound_path": "../SoundJS",
+  "preload_path": "../PreloadJS",
 
   "uglifyMin": {
     "preserveComments": "function set in gulpfile",
