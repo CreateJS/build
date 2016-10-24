@@ -1,4 +1,10 @@
-libs/
 buildAssets/
 docsTheme/
+cdn/
+
+CHANGELOG
+config.json
+config.local.json
+gulpfile.babel.js
+icon.png
 bower.json

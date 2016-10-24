@@ -167,8 +167,8 @@ function bundle (options, type, minify) {
   return b.pipe(gulp.dest(paths.dist));
 }
 
-// multi-entry lets rollup grab main.js from each lib for a combined bundle.
-// node-resolve lets rollup pull in the shared createjs files and compile/bundle them with the rest of the lib
+// multi-entry reads main.js from each lib for a combined bundle.
+// node-resolve grabs the shared createjs files and compiles/bundles them with the rest of the lib
 gulp.task("bundle:es6", function (done) {
   let options = {
     format: "es",
@@ -191,7 +191,7 @@ gulp.task("bundle:cjs", function (done) {
 gulp.task("bundle:global", function (done) {
   let options = {
     format: "iife",
-    moduleName: "createjs",
+    moduleName: "createjs", // renamed just for perf testing to avoid overriding the other lib
     plugins: [ babel(), multiEntry(), nodeResolve() ]
   };
   bundle(options, "", false);
@@ -286,7 +286,7 @@ gulp.task("dev", gulp.series(
 gulp.task("karma", function (done) {
   let browser = yargs.argv.browser;
   let headless = browser === "PhantomJS";
-  // wrap done to fix occasional bug that occurs when trying to close the server.
+  // wrap done() to fix occasional bug that occurs when trying to close the server.
   let end = function () { done(); };
   let server = new karma.Server({
     configFile: paths.testConfig,
