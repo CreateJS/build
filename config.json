@@ -22,7 +22,6 @@
 
   "beautify": {
     "indent_size": 2,
-    "max_preserve_newlines": 2,
-    "space_after_anon_function": true
+    "max_preserve_newlines": 1
   }
 }

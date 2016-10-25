@@ -1,10 +1,12 @@
+# THIS BRANCH IS CURRENTLY UNDER HEAVY DEVELOPMENT
+
 ## We use Gulp (http://gulpjs.com/) to manage our build process.
 
 ### To use
 
 #### Install dependencies
 
-Node (4.2.2 or greater is required):
+Node (>=4.2.2):
 
 ```
 node -v
@@ -62,3 +64,5 @@ Does the exact same process as above but uses NEXT as the version.
 * `npm run build` - Builds all the projects and creates combined / minified files
 * `npm run build:next` - Same as build, but uses the NEXT version.
 * `npm run cdn` - Builds a new CDN index page and copies all required script files to build.
+* `npm run copy:builds` - Copies the NEXT build (global module) from each lib into the asset dirs of the others.
+* `npm run copy:demos` - Copies each lib's examples over to the site's demos dir.
