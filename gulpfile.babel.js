@@ -12,6 +12,7 @@ import nodeResolve from "rollup-plugin-node-resolve";
 import source from "vinyl-source-stream";
 import buffer from "vinyl-buffer";
 
+import merge from "merge-stream";
 import defaults from "lodash.defaults";
 import del from "del";
 import browserSync from "browser-sync";
@@ -74,9 +75,9 @@ const paths = {
   extras: `${relative}extras/**/*`,
   sourceFiles: `${relative}src/**/*.js`,
   sourcemaps: ".",
-  testConfig: `${relative}tests/karma.conf.js`,
-  docsSASS: "./docsTheme/assets/scss/main.scss",
-  docsCSS: "./docsTheme/assets/css/"
+  testConfig: `${cwd}/${relative}tests/karma.conf.js`,
+  docs_sass: "./docsTheme/assets/scss/main.scss",
+  docs_css: "./docsTheme/assets/css/"
 };
 const browser = browserSync.create();
 // stores bundle caches for rebundling with rollup
@@ -93,7 +94,7 @@ config.uglifyNonMin.preserveComments = function (node, comment) {
   // preserve the injected license header
   if (comment.line === 1) { return true; }
   // strip any file header comments, including licenses.
-  return !(/(@namespace|@module|copyright)/gi.test(comment.value));
+  return !(/(@namespace|@module|copyright)/i.test(comment.value));
 };
 
 // quick and easy lodash.template()
@@ -147,7 +148,7 @@ function bundle (options, type, minify) {
   let b = rollup(options)
     .on("bundle", bundle => buildCaches[filename] = bundle) // cache bundle for re-bundles triggered by watch
     .pipe(source(filename))
-    .pipe(buffer())
+    .pipe(buffer());
   if (minify) {
     if (!isES6) {
       b = b.pipe(uglify(config.uglifyMin));
@@ -169,34 +170,35 @@ function bundle (options, type, minify) {
 
 // multi-entry reads main.js from each lib for a combined bundle.
 // node-resolve grabs the shared createjs files and compiles/bundles them with the rest of the lib
-gulp.task("bundle:es6", function (done) {
+gulp.task("bundle:es6", function () {
   let options = {
     format: "es",
     plugins: [ multiEntry(), nodeResolve() ]
   };
-  bundle(options, "es6", false);
-  done();
+  return bundle(options, "es6", false);
 });
 
-gulp.task("bundle:cjs", function (done) {
+gulp.task("bundle:cjs", function () {
   let options = {
     format: "cjs",
     plugins: [ babel(), multiEntry(), nodeResolve() ]
   };
-  bundle(options, "cjs", false);
-  bundle(options, "cjs", true);
-  done();
+  return merge(
+    bundle(options, "cjs", false),
+    bundle(options, "cjs", true)
+  );
 });
 
-gulp.task("bundle:global", function (done) {
+gulp.task("bundle:global", function () {
   let options = {
     format: "iife",
     moduleName: "createjs", // renamed just for perf testing to avoid overriding the other lib
     plugins: [ babel(), multiEntry(), nodeResolve() ]
   };
-  bundle(options, "", false);
-  bundle(options, "", true);
-  done();
+  return merge(
+    bundle(options, "", false),
+    bundle(options, "", true)
+  );
 });
 
 
@@ -212,9 +214,9 @@ gulp.task("clean:docs", function () {
 });
 
 gulp.task("sass:docs", function () {
-  return gulp.src(paths.docsSASS)
+  return gulp.src(paths.docs_sass)
     .pipe(sass({ outputStyle: "compressed" }).on("error", sass.logError))
-    .pipe(gulp.dest(paths.docsCSS));
+    .pipe(gulp.dest(paths.docs_css));
 });
 
 // there's no good and/or recent gulp wrapper for yuidoc available, so we'll execute a shell task

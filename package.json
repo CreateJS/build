@@ -38,7 +38,10 @@
     "dev": "gulp dev --NEXT",
     "build": "gulp build",
     "build:next": "gulp build --NEXT",
-    "docs": "gulp docs"
+    "docs": "gulp docs",
+    "cdn": "gulp cdn",
+    "copy:builds": "TODO",
+    "copy:demos": "TODO"
   },
   "devDependencies": {
     "babel-core": "^6.14.0",
@@ -63,6 +66,7 @@
     "karma-mocha-reporter": "^2.2.0",
     "karma-phantomjs-launcher": "^1.0.2",
     "lodash.defaults": "^4.2.0",
+    "merge-stream": "^1.0.0",
     "rollup-plugin-babel": "^2.6.1",
     "rollup-plugin-multi-entry": "^2.0.1",
     "rollup-plugin-node-resolve": "^2.0.0",
