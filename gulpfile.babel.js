@@ -288,12 +288,14 @@ gulp.task("dev", gulp.series(
 gulp.task("karma", function (done) {
   let browser = yargs.argv.browser;
   let headless = browser === "PhantomJS";
+  let reporters = [ "mocha" ];
+  if (!headless) { reporters.push("kjhtml"); }
   // wrap done() to fix occasional bug that occurs when trying to close the server.
   let end = function () { done(); };
   let server = new karma.Server({
     configFile: paths.testConfig,
     browsers: [ browser ],
-    reporters: [ headless ? "mocha" : "kjhtml" ]
+    reporters
   }, end);
   server.start();
 });

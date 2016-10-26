@@ -33,6 +33,7 @@
     "url": "https://github.com:CreateJS/CreateJS"
   },
   "scripts": {
+    "post-install": "npm dedupe",
     "test": "gulp test --NEXT --browser=Chrome",
     "test:headless": "gulp test --NEXT --browser=PhantomJS",
     "dev": "gulp dev --NEXT",
