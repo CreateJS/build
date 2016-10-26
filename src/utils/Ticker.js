@@ -26,10 +26,6 @@
 * OTHER DEALINGS IN THE SOFTWARE.
 */
 
-/**
- * @module CreateJS
- */
-
 import EventDispatcher from "../events/EventDispatcher";
 import Event from "../events/Event";
 
@@ -53,6 +49,7 @@ import Event from "../events/Event";
   *
   * @class Ticker
   * @extends EventDispatcher
+  * @module CreateJS
   */
 export default class Ticker extends EventDispatcher {
 

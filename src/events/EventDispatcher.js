@@ -26,10 +26,6 @@
 * OTHER DEALINGS IN THE SOFTWARE.
 */
 
-/**
- * @module CreateJS
- */
-
 import Event from './Event';
 
 /**
@@ -79,6 +75,7 @@ import Event from './Event';
  *
  *
  * @class EventDispatcher
+ * @module CreateJS
  */
 export default class EventDispatcher {
 

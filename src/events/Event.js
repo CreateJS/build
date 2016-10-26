@@ -27,12 +27,8 @@
 */
 
 /**
- * A collection of Classes that are shared across all the CreateJS libraries.  The classes are included in the minified
- * files of each library and are available on the createsjs namespace directly.
- *
- * <h4>Example</h4>
- *
- *      myObject.addEventListener("change", createjs.proxy(myMethod, scope));
+ * A collection of classes that are shared across the CreateJS libraries.
+ * Classes required by a library are compiled with that library.
  *
  * @module CreateJS
  * @main CreateJS
@@ -44,6 +40,7 @@
  * rely on an event object's state outside of the call stack it was received in.
  *
  * @class Event
+ * @module CreateJS
  */
 export default class Event {
 
