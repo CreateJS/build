@@ -51,17 +51,24 @@ import Event from "../events/Event";
  * @extends EventDispatcher
  * @module CreateJS
  */
-export class TickerAPI extends EventDispatcher {
+class TickerAPI extends EventDispatcher {
 
 // constructor:
 	/**
+	 * @param name {String} The name assigned to this instance.
 	 * @constructor
 	 * TODO-ES6: Pass timingMode, maxDelta, paused values as instantiation arguments?
 	 */
-	constructor () {
+	constructor (name) {
 		super();
 
 // public properties:
+		/**
+		 * The name of this instance.
+		 * @property name
+		 * @type {String}
+		 */
+		this.name = name;
 		/**
 		 * Specifies the timing api (setTimeout or requestAnimationFrame) and mode to use. See
 		 * {{#crossLink "Ticker/TIMEOUT"}}{{/crossLink}}, {{#crossLink "Ticker/RAF"}}{{/crossLink}}, and
@@ -229,6 +236,18 @@ export class TickerAPI extends EventDispatcher {
 	}
 
 // public methods:
+	/**
+	 * Call createjs.Ticker.create() to get a new TickerAPI instance.
+	 * It is not inited by default and its ticks are not synched with any other instance.
+	 *
+	 * @param name {String} The name given to the new instance.
+	 * @method create
+	 * @return {TickerAPI} A new TickerAPI instance.
+	 */
+	create (name) {
+		return new TickerAPI(name);
+	}
+
 	/**
 	 * Starts the tick. This is called automatically when the first listener is added.
 	 * @method init
@@ -523,9 +542,11 @@ TickerAPI.TIMEOUT = "timeout";
  */
 
 /**
- * The default TickerAPI instance, globally available on the namespace.
- * @type {TickerAPI}
+ * The Ticker object is a singleton instance of the TickerAPI class.
+ * See the {{#crossLink "TickerAPI"}}{{/crossLink}} documentation for its usage.
+ * @class Ticker
+ * @static
  * @module CreateJS
  */
-const Ticker = new TickerAPI();
+const Ticker = new TickerAPI("createjs.global");
 export { Ticker as default };

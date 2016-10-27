@@ -100,4 +100,12 @@ describe("Ticker", function () {
 			done();
 		}, 1000);
 	});
+
+	it("creates new instances", function () {
+		expect(createjs.Ticker.name).toEqual("createjs.global");
+		var name = "ticker";
+		var ticker = createjs.Ticker.create(name);
+		expect(ticker).not.toEqual(createjs.Ticker);
+		expect(ticker.name).toEqual(name);
+	});
 });
