@@ -93,8 +93,8 @@ config.uglifyMin.preserveComments = function (node, comment) {
 config.uglifyNonMin.preserveComments = function (node, comment) {
   // preserve the injected license header
   if (comment.line === 1) { return true; }
-  // strip any file header comments, including licenses.
-  return !(/(@namespace|@module|copyright)/i.test(comment.value));
+  // strip individual file license headers or any comment containing an @uglify tag.
+  return !(/(@uglify|@license|copyright)/i.test(comment.value));
 };
 
 // quick and easy lodash.template()
