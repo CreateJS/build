@@ -3,6 +3,7 @@ import uglify from "gulp-uglify";
 import beautify from "gulp-beautify";
 import sourcemaps from "gulp-sourcemaps";
 import sass from "gulp-sass";
+import replace from "gulp-replace";
 
 import rollup from "rollup-stream";
 import babel from "rollup-plugin-babel";
@@ -148,7 +149,8 @@ function bundle (options, type, minify) {
   let b = rollup(options)
     .on("bundle", bundle => buildCaches[filename] = bundle) // cache bundle for re-bundles triggered by watch
     .pipe(source(filename))
-    .pipe(buffer());
+    .pipe(buffer())
+    .pipe(replace(/<%=\sversion\s%>/g, pkg.version)); // inject the build version into the bundle
   if (minify) {
     if (!isES6) {
       b = b.pipe(uglify(config.uglifyMin));
@@ -192,7 +194,7 @@ gulp.task("bundle:cjs", function () {
 gulp.task("bundle:global", function () {
   let options = {
     format: "iife",
-    moduleName: "createjs", // renamed just for perf testing to avoid overriding the other lib
+    moduleName: "createjs",
     plugins: [ babel(), multiEntry(), nodeResolve() ]
   };
   return merge(
