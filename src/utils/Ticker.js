@@ -47,11 +47,11 @@ import Event from "../events/Event";
  *          }
  *      }
  *
- * @class Ticker
+ * @class TickerAPI
  * @extends EventDispatcher
  * @module CreateJS
  */
-export default class Ticker extends EventDispatcher {
+export class TickerAPI extends EventDispatcher {
 
 // constructor:
 	/**
@@ -70,7 +70,7 @@ export default class Ticker extends EventDispatcher {
 		 * @type {String}
 		 * @default Ticker.TIMEOUT
 		 */
-		this.timingMode = Ticker.TIMEOUT;
+		this.timingMode = TickerAPI.TIMEOUT;
 
 		/**
 		 * Specifies a maximum value for the delta property in the tick event object. This is useful when building time
@@ -392,11 +392,11 @@ export default class Ticker extends EventDispatcher {
 	_setupTick () {
 		if (this._timerId != null) { return; } // avoid duplicates
 
-		let mode = this.timingMode || (this._raf && Ticker.RAF); // TODO-ES6: Verify that this is desired, since Ticker.useRAF was removed.
-		if (mode == Ticker.RAF_SYNCHED || mode == Ticker.RAF) {
+		let mode = this.timingMode || (this._raf && TickerAPI.RAF); // TODO-ES6: Verify that this is desired, since Ticker.useRAF was removed.
+		if (mode == TickerAPI.RAF_SYNCHED || mode == TickerAPI.RAF) {
 			let f = window.requestAnimationFrame || window.webkitRequestAnimationFrame || window.mozRequestAnimationFrame || window.oRequestAnimationFrame || window.msRequestAnimationFrame;
 			if (f) {
-				this._timerId = f(mode == Ticker.RAF ? this._handleRAF.bind(this) : this._handleSynch.bind(this));
+				this._timerId = f(mode == TickerAPI.RAF ? this._handleRAF.bind(this) : this._handleSynch.bind(this));
 				this._raf = true;
 				return;
 			}
@@ -470,7 +470,7 @@ export default class Ticker extends EventDispatcher {
  * @default "synched"
  * @readonly
  */
-Ticker.RAF_SYNCHED = "synched";
+TickerAPI.RAF_SYNCHED = "synched";
 
 /**
  * In this mode, Ticker passes through the requestAnimationFrame heartbeat, ignoring the target framerate completely.
@@ -486,7 +486,7 @@ Ticker.RAF_SYNCHED = "synched";
  * @default "raf"
  * @readonly
  */
-Ticker.RAF = "raf";
+TickerAPI.RAF = "raf";
 
 /**
  * In this mode, Ticker uses the setTimeout API. This provides predictable, adaptive frame timing, but does not
@@ -497,7 +497,7 @@ Ticker.RAF = "raf";
  * @default "timeout"
  * @readonly
  */
-Ticker.TIMEOUT = "timeout";
+TickerAPI.TIMEOUT = "timeout";
 
 // events:
 /**
@@ -521,3 +521,11 @@ Ticker.TIMEOUT = "timeout";
  * 	you could determine the amount of time that the Ticker has been paused since initialization with `time-runTime`.
  * @since 0.6.0
  */
+
+/**
+ * The default TickerAPI instance, globally available on the namespace.
+ * @type {TickerAPI}
+ * @module CreateJS
+ */
+const Ticker = new TickerAPI();
+export { Ticker as default };
