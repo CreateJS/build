@@ -1,5 +1,5 @@
 /*
-* Ticker
+* @license Ticker
 * Visit http://createjs.com/ for documentation, updates and examples.
 *
 * Copyright (c) 2010 gskinner.com, inc.
@@ -29,28 +29,28 @@
 import EventDispatcher from "../events/EventDispatcher";
 import Event from "../events/Event";
 
- /**
-  * The Ticker provides a centralized tick or heartbeat broadcast at a set interval. Listeners can subscribe to the tick
-  * event to be notified when a set time interval has elapsed.
-  *
-  * Note that the interval that the tick event is called is a target interval, and may be broadcast at a slower interval
-  * when under high CPU load. The Ticker class uses a static interface (ex. `Ticker.framerate = 30;`) and
-  * can not be instantiated.
-  *
-  * <h4>Example</h4>
-  *
-  *      createjs.Ticker.addEventListener("tick", handleTick);
-  *      function handleTick(event) {
-  *          // Actions carried out each tick (aka frame)
-  *          if (!event.paused) {
-  *              // Actions carried out when the Ticker is not paused.
-  *          }
-  *      }
-  *
-  * @class Ticker
-  * @extends EventDispatcher
-  * @module CreateJS
-  */
+/**
+ * The Ticker provides a centralized tick or heartbeat broadcast at a set interval. Listeners can subscribe to the tick
+ * event to be notified when a set time interval has elapsed.
+ *
+ * Note that the interval that the tick event is called is a target interval, and may be broadcast at a slower interval
+ * when under high CPU load. The Ticker class uses a static interface (ex. `Ticker.framerate = 30;`) and
+ * can not be instantiated.
+ *
+ * <h4>Example</h4>
+ *
+ *      createjs.Ticker.addEventListener("tick", handleTick);
+ *      function handleTick(event) {
+ *          // Actions carried out each tick (aka frame)
+ *          if (!event.paused) {
+ *              // Actions carried out when the Ticker is not paused.
+ *          }
+ *      }
+ *
+ * @class Ticker
+ * @extends EventDispatcher
+ * @module CreateJS
+ */
 export default class Ticker extends EventDispatcher {
 
 // constructor:
