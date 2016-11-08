@@ -43,6 +43,20 @@ Please adjust these settings to match your environment. All paths can either be 
 * `sound_path`
 * `tween_path`
 
+#### Developing in Tandem with a library
+All of the CreateJS libs have this repository as a dependency. In order to edit this repository and have the changes reflect immediately in your
+local lib repository, you must link the repositories.
+
+```
+# From this repository, run:
+npm link .
+
+# From the lib, run:
+npm link createjs
+```
+
+This will create a symlink in the `node_modules` for the `createjs` dependency.
+
 #### Building
 To export a release build for this library run:
 
