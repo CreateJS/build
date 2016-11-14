@@ -4,6 +4,7 @@ import beautify from "gulp-beautify";
 import sourcemaps from "gulp-sourcemaps";
 import sass from "gulp-sass";
 import replace from "gulp-replace";
+import gutil from "gulp-util";
 
 import rollup from "rollup-stream";
 import babel from "rollup-plugin-babel";
@@ -43,14 +44,24 @@ import fs from "fs";
 
 ********************************************************************/
 
-// return the string contents of a file
+function log (color, ...text) {
+  gutil.log(gutil.colors[color](...text));
+}
+
+// return the string contents of a file, or undefined if there was an error reading the file
 function getFile (path) {
-  return fs.readFileSync(path, { encoding: 'utf-8' });
+  try {
+    return fs.readFileSync(path, { encoding: "utf-8" });
+  } catch (error) {
+    log('yellow', `File '${path}' was not found. Returning 'undefined'.`);
+    return undefined;
+  }
 }
 
 // return JSON read from a file
 function readJSON (path) {
-  return JSON.parse(getFile(path));
+  let file = getFile(path);
+  return file ? JSON.parse(file) : {};
 }
 
 // cwd will always be the createjs dir
@@ -98,14 +109,6 @@ config.uglifyNonMin.preserveComments = function (node, comment) {
   return !(/(@uglify|@license|copyright)/i.test(comment.value));
 };
 
-// quick and easy lodash.template()
-function template (str, replace) {
-  for (let key in replace) {
-    str = str.replace(new RegExp(`<%= ${key} %>`, "g"), replace[key]);
-  }
-  return str;
-}
-
 // replace .js with .map for sourcemaps
 function mapFile (filename) {
   return filename.replace(".js", "");
@@ -133,7 +136,7 @@ function bundle (options, type, minify) {
   // rollup is faster if we pass in the previous bundle on a re-bundle
   options.cache = buildCaches[filename];
   // min files are prepended with LICENSE, non-min with BANNER
-  options.banner = template(getFile(paths[minify ? "LICENSE" : "BANNER"]), { name: pkg.name });
+  options.banner = gutil.template(getFile(paths[minify ? "LICENSE" : "BANNER"]), { name: pkg.name, file: gulp });
   // "createjs" imports by the libs must be internalized
   options.external = function external (id) { return false; };
   if (isCombined) {
