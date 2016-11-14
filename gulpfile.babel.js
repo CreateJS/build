@@ -136,7 +136,7 @@ function bundle (options, type, minify) {
   // rollup is faster if we pass in the previous bundle on a re-bundle
   options.cache = buildCaches[filename];
   // min files are prepended with LICENSE, non-min with BANNER
-  options.banner = gutil.template(getFile(paths[minify ? "LICENSE" : "BANNER"]), { name: pkg.name, file: gulp });
+  options.banner = gutil.template(getFile(paths[minify ? "LICENSE" : "BANNER"]), { name: pkg.name, file: "" });
   // "createjs" imports by the libs must be internalized
   options.external = function external (id) { return false; };
   if (isCombined) {
