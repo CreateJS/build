@@ -240,7 +240,7 @@ export default class Event {
 	 * @return {String} a string representation of the instance.
 	 */
 	toString () {
-		return `[Event (type=${this.type})]`;
+		return `[${this.constructor.name} (type=${this.type})]`;
 	}
 
 }
