@@ -30,23 +30,22 @@ import EventDispatcher from "../events/EventDispatcher";
 import Event from "../events/Event";
 
 /**
- * Tickers provide a centralized tick or heartbeat broadcast at a set interval. Listeners can subscribe to the tick
+ * The Ticker provides a centralized tick or heartbeat broadcast at a set interval. Listeners can subscribe to the tick
  * event to be notified when a set time interval has elapsed.
  *
  * Note that the interval that the tick event is called is a target interval, and may be broadcast at a slower interval
- * when under high CPU load.
+ * when under high CPU load. The Ticker class uses a static interface (ex. `Ticker.framerate = 30;`) and
+ * can not be instantiated.
  *
- * A global TickerAPI instance is provided on the createjs.Ticker property to provide backwards compatibility with older
- * CreateJS builds.
+ * <h4>Example</h4>
  *
- * @example
- * createjs.Ticker.addEventListener("tick", handleTick);
- * function handleTick(event) {
- * 		// Actions carried out each tick (aka frame)
- * 		if (!event.paused) {
- * 				// Actions carried out when the Ticker is not paused.
- * 		}
- * }
+ *      createjs.Ticker.addEventListener("tick", handleTick);
+ *      function handleTick(event) {
+ *          // Actions carried out each tick (aka frame)
+ *          if (!event.paused) {
+ *              // Actions carried out when the Ticker is not paused.
+ *          }
+ *      }
  *
  * @class TickerAPI
  * @extends EventDispatcher
@@ -71,13 +70,12 @@ class TickerAPI extends EventDispatcher {
 		 */
 		this.name = name;
 		/**
-		 * Specifies the timing api (setTimeout or requestAnimationFrame) and mode to use.
-		 * @see TickerAPI.TIMEOUT
-		 * @see TickerAPI.RAF
-		 * @see TickerAPI.RAF_SYNCHED
+		 * Specifies the timing api (setTimeout or requestAnimationFrame) and mode to use. See
+		 * {{#crossLink "Ticker/TIMEOUT"}}{{/crossLink}}, {{#crossLink "Ticker/RAF"}}{{/crossLink}}, and
+		 * {{#crossLink "Ticker/RAF_SYNCHED"}}{{/crossLink}} for mode details.
 		 * @property timingMode
 		 * @type {String}
-		 * @default TickerAPI.TIMEOUT
+		 * @default Ticker.TIMEOUT
 		 */
 		this.timingMode = TickerAPI.TIMEOUT;
 
@@ -99,23 +97,20 @@ class TickerAPI extends EventDispatcher {
 
 		/**
 		 * When the ticker is paused, all listeners will still receive a tick event, but the <code>paused</code> property
-		 * of the event will be `true`. Also, while paused the `runTime` will not increase.
+		 * of the event will be `true`. Also, while paused the `runTime` will not increase. See {{#crossLink "Ticker/tick:event"}}{{/crossLink}},
+		 * {{#crossLink "Ticker/getTime"}}{{/crossLink}}, and {{#crossLink "Ticker/getEventTime"}}{{/crossLink}} for more
 		 * info.
 		 *
-		 * @example
-		 * createjs.Ticker.addEventListener("tick", handleTick);
-		 * createjs.Ticker.paused = true;
-		 * function handleTick(event) {
-		 * 		console.log(
-		 * 				event.paused,
-		 * 				createjs.Ticker.getTime(false),
-		 * 				createjs.Ticker.getTime(true)
-		 * 		);
-		 * }
+		 * <h4>Example</h4>
 		 *
-		 * @see TickerAPI.tick:event
-		 * @see TickerAPI.getTime()
-		 * @see TickerAPI.getEventTime()
+		 *      createjs.Ticker.addEventListener("tick", handleTick);
+		 *      createjs.Ticker.paused = true;
+		 *      function handleTick(event) {
+		 *          console.log(event.paused,
+		 *          	createjs.Ticker.getTime(false),
+		 *          	createjs.Ticker.getTime(true));
+		 *      }
+		 *
 		 * @property paused
 		 * @type {Boolean}
 		 * @default false
@@ -212,6 +207,7 @@ class TickerAPI extends EventDispatcher {
 	 * Note that actual time between ticks may be more than specified depending on CPU load.
 	 * This property is ignored if the ticker is using the `RAF` timing mode.
 	 * @property interval
+	 * @static
 	 * @type {Number}
 	 */
 	get interval () {
@@ -228,6 +224,7 @@ class TickerAPI extends EventDispatcher {
 	 * Indicates the target frame rate in frames per second (FPS). Effectively just a shortcut to `interval`, where
 	 * `framerate == 1000/interval`.
 	 * @property framerate
+	 * @static
 	 * @type {Number}
 	 */
 	get framerate () {
@@ -240,13 +237,9 @@ class TickerAPI extends EventDispatcher {
 
 // public methods:
 	/**
-	 * Create a new TickerAPI instance.
+	 * Call createjs.Ticker.create() to get a new TickerAPI instance.
+	 * It is not inited by default and its ticks are not synched with any other instance.
 	 *
-	 * @example
-	 * let myTicker = createjs.Ticker.create("myTicker");
-	 * // myTicker.name === "myTicker";
-	 *
-	 * @see Ticker
 	 * @param name {String} The name given to the new instance.
 	 * @method create
 	 * @return {TickerAPI} A new TickerAPI instance.
@@ -287,9 +280,8 @@ class TickerAPI extends EventDispatcher {
 	}
 
 	/**
-	 * Initialize this instance if it hasn't been already.
-	 * @method addEventListener
-	 * @override
+	 * Init the Ticker instance if it hasn't been already.
+	 * Docced in superclass.
 	 */
 	addEventListener (type, listener, useCapture) {
 		!this._inited && this.init();
@@ -297,7 +289,7 @@ class TickerAPI extends EventDispatcher {
 	}
 
 	/**
-	 * Returns the average time spent within a tick. This can vary significantly from the value provided by getMeasuredFPS()
+	 * Returns the average time spent within a tick. This can vary significantly from the value provided by getMeasuredFPS
 	 * because it only measures the time spent within the tick execution stack.
 	 *
 	 * Example 1: With a target FPS of 20, getMeasuredFPS() returns 20fps, which indicates an average of 50ms between
@@ -313,7 +305,7 @@ class TickerAPI extends EventDispatcher {
 	 * @return {Number} The average time spent in a tick in milliseconds.
 	 */
 	getMeasuredTickTime (ticks) {
-		let times = this._tickTimes;
+		let times=this._tickTimes;
 		if (!times || times.length < 1) { return -1; }
 
 		// by default, calculate average for the past ~1 second:
