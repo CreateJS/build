@@ -238,7 +238,7 @@ class TickerAPI extends EventDispatcher {
 // public methods:
 	/**
 	 * Call createjs.Ticker.create() to get a new TickerAPI instance.
-	 * It is not inited by default and its ticks are not synched with any other instance.
+	 * It is not initalized by default and its ticks are not synched with any other instance.
 	 *
 	 * @param name {String} The name given to the new instance.
 	 * @method create

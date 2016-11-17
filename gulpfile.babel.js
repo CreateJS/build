@@ -33,7 +33,7 @@ import fs from "fs";
     - copy all necessary dist files over to the CDN
     - compression of build to zip
   - Copy
-    - When a lib is built, copy it's global module into the _assets/libs of the other lib as a next.
+    - When a lib is built, copy its global module into the _assets/libs of the other lib as a next.
     - also copy it to the demos folders on the site
     - copy lib/examples to site/demos/lib
  */
@@ -299,13 +299,15 @@ gulp.task("dev", gulp.series(
 gulp.task("karma", function (done) {
   let browser = yargs.argv.browser;
   let headless = browser === "PhantomJS";
+  let travis = browser === "Chrome_Travis";
   let reporters = [ "mocha" ];
-  if (!headless) { reporters.push("kjhtml"); }
+  if (!headless && !travis) { reporters.push("kjhtml"); }
   // wrap done() to fix occasional bug that occurs when trying to close the server.
   let end = function () { done(); };
   let server = new karma.Server({
     configFile: paths.testConfig,
     browsers: [ browser ],
+    singleRun: travis,
     reporters
   }, end);
   server.start();

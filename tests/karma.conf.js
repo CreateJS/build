@@ -13,6 +13,13 @@ module.exports = function (config) {
       "tests/helpers/helpers.js",
       // specs
       "tests/spec/*.js"
-    ]
+    ],
+    // Travis VM's have Chrome installed, but it needs the no-sandbox flag to run.
+    customLaunchers: {
+        Chrome_Travis: {
+            base: 'Chrome',
+            flags: ['--no-sandbox']
+        }
+    }
   });
 };

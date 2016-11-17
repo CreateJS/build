@@ -36,6 +36,7 @@
     "post-install": "npm dedupe",
     "test": "gulp test --NEXT --browser=Chrome",
     "test:headless": "gulp test --NEXT --browser=PhantomJS",
+    "test:travis": "gulp test --NEXT --browser=Chrome_Travis",
     "dev": "gulp dev --NEXT",
     "build": "gulp build",
     "build:next": "gulp build --NEXT",
