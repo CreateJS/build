@@ -71,6 +71,7 @@ const relative = /node_modules/.test(cwd) ? "../../" : "./";
 // get the relative package and the universal config (overwritten by the local config)
 const pkg = JSON.parse(getFile(`${relative}package.json`));
 const config = defaults(readJSON("./config.local.json"), readJSON("./config.json"));
+const libs = ["easel","tween","sound","preload"];
 // quickrefs
 const activeLib = pkg.name;
 const isCombined = activeLib === "createjs";
@@ -141,7 +142,12 @@ function bundle (options, type, minify) {
   options.external = function external (id) { return false; };
   if (isCombined) {
     // multi-entry rollup plugin will handle the src/main paths for all libs
-    options.entry = ["easel","tween","sound","preload"].map(lib => `${config[`${lib}_path`]}/${paths.entry.replace(relative, "")}`);
+    options.entry = libs.map(lib => {
+      let path = `${config[`${lib}_path`]}/${paths.entry.replace(relative, "")}`;
+      try { fs.accessSync(path); }
+      catch (error) { log('yellow', `Local ${lib[0].toUpperCase() + lib.slice(1)}JS not found, it will not be in the bundle. Please verify your config.local.json path.`); }
+      return path;
+    });
   } else {
     options.entry = paths.entry;
   }
@@ -317,4 +323,25 @@ gulp.task("test", gulp.series(
     "karma",
     "watch:test"
   )
+));
+
+/********************************************************************
+
+  DEV LINK
+
+********************************************************************/
+
+// link the Combined repository to all of the repos or just the one passed
+// this must be run from gulp and not npm, as args passed to npm run are not visible to the subsequent gulp task.
+gulp.task("link", shell.task(
+  (function () {
+    let linked = true;
+    try { fs.accessSync(process.execPath.replace("node.exe", "node_modules/createjs")); }
+    catch (err) { linked = false; }
+    return (linked ? [] : [ "npm link ." ]).concat(
+      yargs.argv.hasOwnProperty('all')
+        ? libs.map(lib => `cd ${config[`${lib}_path`]} && npm link createjs`)
+        : [ `cd ${config[`${(yargs.argv.lib || "").replace("js", "").toLowerCase()}_path`]} && npm link createjs` ]
+    );
+  })()
 ));
