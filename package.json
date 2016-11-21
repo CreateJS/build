@@ -34,9 +34,10 @@
   },
   "scripts": {
     "post-install": "npm dedupe",
+    "travis": "gulp test --NEXT --browser=Chrome_Travis && gulp lint",
+    "lint": "gulp lint",
     "test": "gulp test --NEXT --browser=Chrome",
     "test:headless": "gulp test --NEXT --browser=PhantomJS",
-    "test:travis": "gulp test --NEXT --browser=Chrome_Travis",
     "dev": "gulp dev --NEXT",
     "build": "gulp build",
     "build:next": "gulp build --NEXT",
