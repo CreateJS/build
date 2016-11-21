@@ -4,6 +4,7 @@ import beautify from "gulp-beautify";
 import sourcemaps from "gulp-sourcemaps";
 import sass from "gulp-sass";
 import replace from "gulp-replace";
+import eslint from "gulp-eslint";
 import gutil from "gulp-util";
 
 import rollup from "rollup-stream";
@@ -326,6 +327,19 @@ gulp.task("test", gulp.series(
     "watch:test"
   )
 ));
+
+/********************************************************************
+
+  LINT
+
+********************************************************************/
+
+gulp.task("lint", function () {
+  // fail after error to break the travis build.
+  return gulp.src(paths.sourceFiles)
+    .pipe(eslint())
+    .pipe(eslint.format("codeframe"));
+});
 
 /********************************************************************
 
