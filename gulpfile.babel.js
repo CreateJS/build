@@ -7,6 +7,7 @@ import replace from "gulp-replace";
 import eslint from "gulp-eslint";
 import gutil from "gulp-util";
 import shell from "gulp-shell";
+import zip from "gulp-zip";
 
 import rollup from "rollup-stream";
 import babel from "rollup-plugin-babel";
@@ -27,7 +28,7 @@ import fs from "fs";
 /*
   TODO: Remaining tasks.
   - Docs
-    - Compression to zip
+    - Library specific styles (currently hardcoded to Easel)
   - CDN
     - Compile HTML Template
     - SASS (sourceMap: false, outputStyle: compressed)
@@ -233,7 +234,15 @@ gulp.task("sass:docs", function () {
 // each lib has a yuidoc.json in its root
 gulp.task("yuidoc", shell.task(`cd ${relative} && yuidoc ./node_modules/createjs/src ./src`));
 
-gulp.task("docs", gulp.series("clean:docs", "sass:docs", "yuidoc"));
+// zip everything in the docs folder (except any existing archives) and write to the folder
+gulp.task("zip:docs", function () {
+  let path = paths.docs;
+  return gulp.src([ `${path}**`, `!${path}*.zip` ])
+    .pipe(zip(`docs_${activeLib}-${isNext() ? "NEXT" : pkg.version}.zip`))
+    .pipe(gulp.dest(path));
+});
+
+gulp.task("docs", gulp.series("clean:docs", "sass:docs", "yuidoc", "zip:docs"));
 
 /********************************************************************
 
