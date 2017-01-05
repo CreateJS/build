@@ -6,6 +6,7 @@ import sass from "gulp-sass";
 import replace from "gulp-replace";
 import eslint from "gulp-eslint";
 import gutil from "gulp-util";
+import shell from "gulp-shell";
 
 import rollup from "rollup-stream";
 import babel from "rollup-plugin-babel";
@@ -21,7 +22,6 @@ import del from "del";
 import browserSync from "browser-sync";
 import karma from "karma";
 import yargs from "yargs";
-import shell from "gulp-shell";
 import fs from "fs";
 
 /*
@@ -167,15 +167,13 @@ function bundle (options, type, minify) {
     }
   } else {
     if (!isES6) {
-      b = b
-      .pipe(uglify(config.uglifyNonMin))
-      .pipe(beautify(config.beautify));
+      b = b.pipe(uglify(config.uglifyNonMin))
+        .pipe(beautify(config.beautify));
     }
     // only non-min builds get sourcemaps
-    b = b
-    .pipe(sourcemaps.init({ loadMaps: true }))
     // remove the args from sourcemaps.write() to make it an inlined map.
-    .pipe(sourcemaps.write(paths.sourcemaps, { mapFile }));
+    b = b.pipe(sourcemaps.init({ loadMaps: true }))
+      .pipe(sourcemaps.write(paths.sourcemaps, { mapFile }));
   }
   return b.pipe(gulp.dest(paths.dist));
 }
