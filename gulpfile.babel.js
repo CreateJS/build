@@ -28,16 +28,6 @@ import karma from "karma";
 import yargs from "yargs";
 import fs from "fs";
 
-/*
-  TODO: Remaining tasks.
-  - Docs
-    - Library specific styles (currently hardcoded to Easel)
-  - Copy
-    - When a lib is built, copy its global module into the _assets/libs of the other lib as a next.
-    - also copy it to the demos folders on the site
-    - copy lib/examples to site/demos/lib
- */
-
 /********************************************************************
 
   CONSTANTS & UTILITIES
@@ -219,9 +209,46 @@ gulp.task("bundle:global", function () {
 
 /********************************************************************
 
+  BUILD
+
+********************************************************************/
+
+// only clean the NEXT builds. Main builds are stored until manually deleted.
+gulp.task("clean:dist", function (done) {
+  if (isNext()) {
+    return del([ `${paths.dist}*NEXT*.{js,map}` ], { force: true });
+  }
+  done();
+});
+
+gulp.task("copy:build", function (done) {
+  done();
+  /*
+    TODO: Copy builds around the libs.
+      - When a lib is built, copy its global module into the _assets/libs of the other lib as a next.
+      - also copy it to the demos folders on the site
+      - copy lib/examples to site/demos/lib
+   */
+});
+
+gulp.task("build", gulp.series(
+  "clean:dist",
+  gulp.parallel(
+    "bundle:cjs",
+    "bundle:global",
+    "bundle:es6"
+  ),
+  "copy:build"
+));
+
+/********************************************************************
+
   DOCS
 
 ********************************************************************/
+
+// TODO: Library specific styles (currently hardcoded to Easel)
+// TODO: Versioned doc builds.
 
 // force is required to bypass the security warnings about modifying dirs outside the cwd
 gulp.task("clean:docs", function () {
@@ -295,29 +322,6 @@ gulp.task("zip:cdn", function () {
 });
 
 gulp.task("cdn", gulp.series("clean:cdn", "sass:cdn", "render:cdn", "copy:cdn", "zip:cdn"));
-
-/********************************************************************
-
-  BUILD
-
-********************************************************************/
-
-// only clean the NEXT builds. Main builds are stored until manually deleted.
-gulp.task("clean:dist", function (done) {
-  if (isNext()) {
-    return del([ `${paths.dist}*NEXT*.{js,map}` ], { force: true });
-  }
-  done();
-});
-
-gulp.task("build", gulp.series(
-  "clean:dist",
-  gulp.parallel(
-    "bundle:cjs",
-    "bundle:global",
-    "bundle:es6"
-  )
-));
 
 /********************************************************************
 
