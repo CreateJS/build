@@ -129,6 +129,8 @@ function isNext () {
 
 ********************************************************************/
 
+// TODO: babel whitelist to remove unneeded helpers. (https://github.com/rollup/rollup-plugin-babel/issues/91)
+
 function bundle (options, type, minify) {
   const filename = getBuildFile(type, minify);
   // rollup is faster if we pass in the previous bundle on a re-bundle
