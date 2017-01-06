@@ -36,8 +36,6 @@ import fs from "fs";
     - When a lib is built, copy its global module into the _assets/libs of the other lib as a next.
     - also copy it to the demos folders on the site
     - copy lib/examples to site/demos/lib
-
-  - Base option to applicable src() globs { base: '' }
  */
 
 /********************************************************************
@@ -243,7 +241,7 @@ gulp.task("yuidoc", shell.task(`cd ${relative} && yuidoc ./node_modules/createjs
 // zip everything in the docs folder (except any existing archives) and write to the folder
 gulp.task("zip:docs", function () {
   let path = paths.docs;
-  return gulp.src([ `${path}**`, `!${path}*.zip` ])
+  return gulp.src(`${path}**/!(*.zip)`)
     .pipe(zip(`docs_${activeLib}-${isNext() ? "NEXT" : version}.zip`))
     .pipe(gulp.dest(path));
 });
@@ -283,8 +281,8 @@ gulp.task("copy:cdn", function () {
 
   let builds = gulp.src([ ...(libs.map(lib => `${getLibPath(lib)}/dist/*${version}*`)), `dist/*${version}*` ])
     .pipe(gulp.dest(`${cdn}build/builds/`));
-  let favicons = gulp.src(`${cdn}favicons/*`)
-    .pipe(gulp.dest(`${cdn}build/favicons/`));
+  let favicons = gulp.src(`${cdn}favicons/*`, { base: cdn })
+    .pipe(gulp.dest(`${cdn}build/`));
 
   return merge(builds, favicons);
 });
