@@ -3,11 +3,14 @@ import uglify from "gulp-uglify";
 import beautify from "gulp-beautify";
 import sourcemaps from "gulp-sourcemaps";
 import sass from "gulp-sass";
+import cleanCSS from "gulp-clean-css";
+import inlineCSS from "gulp-inline-source";
 import replace from "gulp-replace";
 import eslint from "gulp-eslint";
 import gutil from "gulp-util";
 import shell from "gulp-shell";
 import zip from "gulp-zip";
+import rename from "gulp-rename";
 
 import rollup from "rollup-stream";
 import babel from "rollup-plugin-babel";
@@ -29,15 +32,12 @@ import fs from "fs";
   TODO: Remaining tasks.
   - Docs
     - Library specific styles (currently hardcoded to Easel)
-  - CDN
-    - Compile HTML Template
-    - SASS (sourceMap: false, outputStyle: compressed)
-    - copy all necessary dist files over to the CDN
-    - compression of build to zip
   - Copy
     - When a lib is built, copy its global module into the _assets/libs of the other lib as a next.
     - also copy it to the demos folders on the site
     - copy lib/examples to site/demos/lib
+
+  - Base option to applicable src() globs { base: '' }
  */
 
 /********************************************************************
@@ -73,14 +73,16 @@ const relative = /node_modules/.test(cwd) ? "../../" : "./";
 // get the relative package and the universal config (overwritten by the local config)
 const pkg = JSON.parse(getFile(`${relative}package.json`));
 const config = defaults(readJSON("./config.local.json"), readJSON("./config.json"));
-const libs = ["easel","tween","sound","preload"];
+const libs = [ "easel", "tween", "sound", "preload" ];
 // quickrefs
 const activeLib = pkg.name;
+const version = pkg.version;
 const isCombined = activeLib === "createjs";
 const paths = {
   // universal
   dist: `${relative}dist/`,
   docs: `${relative}docs/`,
+  cdn: `${relative}cdn/`,
   LICENSE: `./buildAssets/LICENSE`,
   BANNER: `./buildAssets/BANNER`,
   // libs only
@@ -117,10 +119,15 @@ function mapFile (filename) {
   return filename.replace(".js", "");
 }
 
-// returns a string of format activeLib(-NEXT)(.type)(.min).js
+// return the lib path from the config
+function getLibPath (lib) {
+  return config[`${lib}_path`];
+}
+
+// returns a string of format activeLib-{version}(.type)(.min).js
 // global modules have no type
 function getBuildFile (type, minify) {
-  return `${activeLib}${isNext() ? "-NEXT" : ""}${type.length ? `.${type}` : ""}${minify ? ".min" : ""}.js`;
+  return `${activeLib}-${isNext() ? "NEXT" : version}${type.length? `.${type}` : ""}${minify ? ".min" : ""}.js`;
 }
 
 // quickref for NEXT builds. Has to be function since a property will be stored prior to a run.
@@ -139,13 +146,13 @@ function bundle (options, type, minify) {
   // rollup is faster if we pass in the previous bundle on a re-bundle
   options.cache = buildCaches[filename];
   // min files are prepended with LICENSE, non-min with BANNER
-  options.banner = gutil.template(getFile(paths[minify ? "LICENSE" : "BANNER"]), { name: pkg.name, file: "" });
+  options.banner = gutil.template(getFile(paths[minify ? "LICENSE" : "BANNER"]), { name: activeLib, file: "" });
   // "createjs" imports by the libs must be internalized
   options.external = function external (id) { return false; };
   if (isCombined) {
     // multi-entry rollup plugin will handle the src/main paths for all libs
     options.entry = libs.map(lib => {
-      let path = `${config[`${lib}_path`]}/${paths.entry.replace(relative, "")}`;
+      let path = `${getLibPath(lib)}/${paths.entry.replace(relative, "")}`;
       try { fs.accessSync(path); }
       catch (error) { log('yellow', `Local ${lib[0].toUpperCase() + lib.slice(1)}JS not found, it will not be in the bundle. Please verify your config.local.json path.`); }
       return path;
@@ -161,7 +168,7 @@ function bundle (options, type, minify) {
     .on("bundle", bundle => buildCaches[filename] = bundle) // cache bundle for re-bundles triggered by watch
     .pipe(source(filename))
     .pipe(buffer())
-    .pipe(replace(/<%=\sversion\s%>/g, pkg.version)); // inject the build version into the bundle
+    .pipe(replace(/<%=\sversion\s%>/g, version)); // inject the build version into the bundle
   if (minify) {
     if (!isES6) {
       b = b.pipe(uglify(config.uglifyMin));
@@ -212,7 +219,6 @@ gulp.task("bundle:global", function () {
   );
 });
 
-
 /********************************************************************
 
   DOCS
@@ -238,11 +244,59 @@ gulp.task("yuidoc", shell.task(`cd ${relative} && yuidoc ./node_modules/createjs
 gulp.task("zip:docs", function () {
   let path = paths.docs;
   return gulp.src([ `${path}**`, `!${path}*.zip` ])
-    .pipe(zip(`docs_${activeLib}-${isNext() ? "NEXT" : pkg.version}.zip`))
+    .pipe(zip(`docs_${activeLib}-${isNext() ? "NEXT" : version}.zip`))
     .pipe(gulp.dest(path));
 });
 
 gulp.task("docs", gulp.series("clean:docs", "sass:docs", "yuidoc", "zip:docs"));
+
+/********************************************************************
+
+  CDN
+
+********************************************************************/
+
+// force is required to bypass the security warnings about modifying dirs outside the cwd
+gulp.task("clean:cdn", function () {
+  return del([ `${paths.cdn}build/*` ], { force: true });
+});
+
+gulp.task("sass:cdn", function () {
+  let cdn = paths.cdn;
+  return gulp.src(`${cdn}styles/styles.scss`)
+    .pipe(sass({ outputStyle: "compressed" }).on("error", sass.logError))
+    .pipe(cleanCSS({ keepSpecialComments: 0 }))
+    .pipe(gulp.dest(`${cdn}build`));
+});
+
+gulp.task("render:cdn", function () {
+  let cdn = paths.cdn;
+  return gulp.src(`${cdn}index.template.html`)
+    .pipe(inlineCSS())
+    .pipe(rename("index.html"))
+    .pipe(gulp.dest(`${cdn}build`));
+});
+
+// get the latest stable builds and copy them to cdn/build
+gulp.task("copy:cdn", function () {
+  let cdn = paths.cdn;
+
+  let builds = gulp.src([ ...(libs.map(lib => `${getLibPath(lib)}/dist/*${version}*`)), `dist/*${version}*` ])
+    .pipe(gulp.dest(`${cdn}build/builds/`));
+  let favicons = gulp.src(`${cdn}favicons/*`)
+    .pipe(gulp.dest(`${cdn}build/favicons/`));
+
+  return merge(builds, favicons);
+});
+
+gulp.task("zip:cdn", function () {
+  let path = `${paths.cdn}build/`;
+  return gulp.src(`${path}**/!(*.css|*.zip)`)
+    .pipe(zip(`cdn_createjs-${version}.zip`))
+    .pipe(gulp.dest(path));
+});
+
+gulp.task("cdn", gulp.series("clean:cdn", "sass:cdn", "render:cdn", "copy:cdn", "zip:cdn"));
 
 /********************************************************************
 
@@ -363,8 +417,8 @@ gulp.task("link", shell.task(
     catch (err) { linked = false; }
     return (linked ? [] : [ "npm link ." ]).concat(
       yargs.argv.hasOwnProperty('all')
-        ? libs.map(lib => `cd ${config[`${lib}_path`]} && npm link createjs`)
-        : [ `cd ${config[`${(yargs.argv.lib || "").replace("js", "").toLowerCase()}_path`]} && npm link createjs` ]
+        ? libs.map(lib => `cd ${getLibPath(lib)} && npm link createjs`)
+        : [ `cd ${getLibPath((yargs.argv.lib || "").replace("js", "").toLowerCase())} && npm link createjs` ]
     );
   })()
 ));
