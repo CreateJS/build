@@ -75,6 +75,7 @@ const paths = {
   BANNER: `./buildAssets/BANNER`,
   // libs only
   entry: `${relative}src/main.js`,
+  plugins: `${relative}src/plugins/*.js`,
   serve: relative,
   examples: `${relative}examples/**/*`,
   extras: `${relative}extras/**/*`,
@@ -87,6 +88,11 @@ const paths = {
 const browser = browserSync.create();
 // stores bundle caches for rebundling with rollup
 const buildCaches = {};
+
+const babelOptions = { externalHelpersWhitelist: [
+  "classCallCheck", "createClass", "inherits", "possibleConstructorReturn",
+  "get", "set" 
+]};
 
 // overwrite the preserveComments strings in the config with functions
 config.uglifyMin.preserveComments = function (node, comment) {
@@ -128,8 +134,6 @@ function isNext () {
   BUNDLING
 
 ********************************************************************/
-
-// TODO: babel whitelist to remove unneeded helpers. (https://github.com/rollup/rollup-plugin-babel/issues/91)
 
 function bundle (options, type, minify) {
   const filename = getBuildFile(type, minify);
@@ -189,7 +193,7 @@ gulp.task("bundle:es6", function () {
 gulp.task("bundle:cjs", function () {
   let options = {
     format: "cjs",
-    plugins: [ babel(), multiEntry(), nodeResolve() ]
+    plugins: [ babel(babelOptions), multiEntry(), nodeResolve() ]
   };
   return merge(
     bundle(options, "cjs", false),
@@ -201,12 +205,53 @@ gulp.task("bundle:global", function () {
   let options = {
     format: "iife",
     moduleName: "createjs",
-    plugins: [ babel(), multiEntry(), nodeResolve() ]
+    plugins: [ babel(babelOptions), multiEntry(), nodeResolve() ]
   };
   return merge(
     bundle(options, "", false),
     bundle(options, "", true)
   );
+});
+
+/********************************************************************
+
+  PLUGINS
+
+********************************************************************/
+
+function plugin (options) {
+  let isIIFE = options.format === "iife";
+  let filename = `${options.entry.match(/(\w+)\.js$/)[1]}.${isIIFE ? "js" : "cjs.js"}`;
+  options.banner = gutil.template(getFile(paths.LICENSE), { name: filename.substring(0, filename.length - (isIIFE ? 3 : 7)), file: "" });
+  return rollup(options)
+    .pipe(source(filename))
+    .pipe(buffer())
+    //.pipe(uglify(config.uglifyMin))
+    .pipe(gulp.dest(`${paths.dist}plugins/`));
+}
+
+// only clean the NEXT builds. Main builds are stored until manually deleted.
+gulp.task("plugins", function (done) {
+  let stub = paths.plugins.substring(0, paths.plugins.length - 4);
+  let plugins = fs.readdirSync(stub);
+  if (plugins.length) {
+    let iife = plugins.map(entry => plugin({
+      entry: stub + entry,
+      format: "iife",
+      moduleName: "createjs",
+      plugins: [ babel(babelOptions) ]
+    }));
+
+    let cjs = plugins.map(entry => plugin({
+      entry: stub + entry,
+      format: "cjs",
+      plugins: [ babel(babelOptions) ]
+    }));
+
+    return merge(...iife, ...cjs);
+  }
+  log('yellow', 'No plugins found.');
+  done();
 });
 
 /********************************************************************
@@ -238,7 +283,8 @@ gulp.task("build", gulp.series(
   gulp.parallel(
     "bundle:cjs",
     "bundle:global",
-    "bundle:es6"
+    "bundle:es6",
+    "plugins"
   ),
   "copy:build"
 ));
@@ -344,12 +390,16 @@ gulp.task("reload", function (done) {
 // only rebundle the global module during dev since that's what the examples use
 gulp.task("watch:dev", function () {
   gulp.watch(paths.sourceFiles, gulp.series("bundle:global", "reload"));
+  gulp.watch(paths.plugins, gulp.series("plugins", "reload"));
   gulp.watch([ paths.examples, paths.extras ], gulp.series("reload"));
 });
 
 gulp.task("dev", gulp.series(
   "clean:dist",
-  "bundle:global",
+  gulp.parallel(
+    "bundle:global",
+    "plugins"
+  ),
   gulp.parallel(
     "serve",
     "watch:dev"
@@ -382,11 +432,15 @@ gulp.task("karma", function (done) {
 // only rebundle global since that's what the tests load
 gulp.task("watch:test", function () {
   gulp.watch(paths.sourceFiles, gulp.series("bundle:global"));
+  gulp.watch(paths.plugins, gulp.series("plugins"));
 });
 
 gulp.task("test", gulp.series(
   "clean:dist",
-  "bundle:global",
+  gulp.parallel(
+    "bundle:global",
+    "plugins"
+  ),
   gulp.parallel(
     "karma",
     "watch:test"
