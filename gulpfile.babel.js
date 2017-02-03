@@ -233,25 +233,23 @@ function plugin (options) {
 // only clean the NEXT builds. Main builds are stored until manually deleted.
 gulp.task("plugins", function (done) {
   let stub = paths.plugins.substring(0, paths.plugins.length - 4);
+  try { fs.accessSync(path); }
+  catch (error) { log('yellow', `No plugins found for ${formatLib(activeLib)}.`); done(); return; }
   let plugins = fs.readdirSync(stub);
-  if (plugins.length) {
-    let iife = plugins.map(entry => plugin({
-      entry: stub + entry,
-      format: "iife",
-      moduleName: "createjs",
-      plugins: [ babel(babelOptions) ]
-    }));
+  let iife = plugins.map(entry => plugin({
+    entry: stub + entry,
+    format: "iife",
+    moduleName: "createjs",
+    plugins: [ babel(config.babel) ]
+  }));
 
-    let cjs = plugins.map(entry => plugin({
-      entry: stub + entry,
-      format: "cjs",
-      plugins: [ babel(babelOptions) ]
-    }));
+  let cjs = plugins.map(entry => plugin({
+    entry: stub + entry,
+    format: "cjs",
+    plugins: [ babel(config.babel) ]
+  }));
 
-    return merge(...iife, ...cjs);
-  }
-  log('yellow', 'No plugins found.');
-  done();
+  return merge(...iife, ...cjs);
 });
 
 /********************************************************************
