@@ -73,6 +73,7 @@ npm run build:next
 ```
 
 Does the exact same process as above but uses NEXT as the version.
+Non-minified NEXT builds have sourcemaps.
 
 #### Main commands
 * `npm run build` - Builds all the projects and creates combined / minified files

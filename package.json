@@ -1,7 +1,7 @@
 {
   "name": "createjs",
   "version": "2.0.0",
-  "description": "",
+  "description": "CreateJS is a JavaScript suite for developers looking to control the true power of HTML5's canvas element.",
   "keywords": [
     "html5",
     "canvas",
@@ -23,7 +23,6 @@
     "Lanny McNie <lanny@gskinner.com> (https://github.com/lannymcnie)",
     "Wes Gorgichuk <wes@gskinner.com> (https://github.com/wdamien)",
     "Patrick McGuckin <patrick@gskinner.com> (https://github.com/tehvgg)",
-    "Mike Chambers <> (https://github.com/mikechambers)"
   ],
   "main": "dist/createjs.cjs.js",
   "jsnext:main": "dist/createjs.es6.js",

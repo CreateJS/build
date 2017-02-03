@@ -28,6 +28,8 @@ import karma from "karma";
 import yargs from "yargs";
 import fs from "fs";
 
+// TODO: Remove sourcemaps for any build that is not unminified NEXT.
+
 /********************************************************************
 
   CONSTANTS & UTILITIES
