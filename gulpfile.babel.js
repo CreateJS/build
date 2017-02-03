@@ -89,11 +89,6 @@ const browser = browserSync.create();
 // stores bundle caches for rebundling with rollup
 const buildCaches = {};
 
-const babelOptions = { externalHelpersWhitelist: [
-  "classCallCheck", "createClass", "inherits", "possibleConstructorReturn",
-  "get", "set" 
-]};
-
 // overwrite the preserveComments strings in the config with functions
 config.uglifyMin.preserveComments = function (node, comment) {
   // preserve the injected license header
@@ -129,6 +124,11 @@ function isNext () {
   return yargs.argv.hasOwnProperty("NEXT");
 }
 
+// makes "easel" or "easeljs" look like "EaselJS"
+function formatLib (lib) {
+  return lib[0].toUpperCase() + lib.substring(1, /js$/.test(lib) ? lib.length - 2 : undefined) + "JS";
+}
+
 /********************************************************************
 
   BUNDLING
@@ -140,9 +140,25 @@ function bundle (options, type, minify) {
   // rollup is faster if we pass in the previous bundle on a re-bundle
   options.cache = buildCaches[filename];
   // min files are prepended with LICENSE, non-min with BANNER
-  options.banner = gutil.template(getFile(paths[minify ? "LICENSE" : "BANNER"]), { name: activeLib, file: "" });
-  // "createjs" imports by the libs must be internalized
-  options.external = function external (id) { return false; };
+  options.banner = gutil.template(getFile(paths[minify ? "LICENSE" : "BANNER"]), { name: formatLib(activeLib), file: "" });
+  if (isCombined) {
+    // combined bundles import all dependencies
+    options.external = function () { return false; }
+  } else {
+    // cross-library dependencies must remain externalized for individual bundles
+    let g = options.globals = {};
+    g.tweenjs = g.easeljs = g.preloadjs = g.soundjs = 'createjs';
+
+    const externalDependencyRegex = new RegExp(`^(${libs.join('|')})js$`);
+    options.external = function external (id) {
+      let match = id.match(externalDependencyRegex);
+      if (match !== null) {
+        log('green', `Externalizing cross-library dependency for ${formatLib(match[1])}`);
+        return true;
+      }
+      return false;
+    };
+  }
   if (isCombined) {
     // multi-entry rollup plugin will handle the src/main paths for all libs
     options.entry = libs.map(lib => {
@@ -193,7 +209,7 @@ gulp.task("bundle:es6", function () {
 gulp.task("bundle:cjs", function () {
   let options = {
     format: "cjs",
-    plugins: [ babel(babelOptions), multiEntry(), nodeResolve() ]
+    plugins: [ babel(config.babel), multiEntry(), nodeResolve() ]
   };
   return merge(
     bundle(options, "cjs", false),
@@ -205,7 +221,7 @@ gulp.task("bundle:global", function () {
   let options = {
     format: "iife",
     moduleName: "createjs",
-    plugins: [ babel(babelOptions), multiEntry(), nodeResolve() ]
+    plugins: [ babel(config.babel), multiEntry(), nodeResolve() ]
   };
   return merge(
     bundle(options, "", false),
