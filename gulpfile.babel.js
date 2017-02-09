@@ -28,9 +28,6 @@ import browserSync from "browser-sync";
 import karma from "karma";
 import yargs from "yargs";
 import fs from "fs";
-import path from "path";
-
-// TODO: Remove sourcemaps for any build that is not unminified NEXT.
 
 /********************************************************************
 
@@ -73,13 +70,13 @@ const version = pkg.version;
 const isCombined = activeLib === "createjs";
 const isNext = yargs.argv.hasOwnProperty("NEXT");
 const paths = {
-  // universal
+  cdn: "./cdn/",
+  LICENSE: "./buildAssets/LICENSE",
+  BANNER: "./buildAssets/BANNER",
+  docs_sass: "./docsTheme/assets/scss/main.scss",
+  docs_css: "./docsTheme/assets/css/",
   dist: `${relative}dist/`,
   docs: `${relative}docs/`,
-  cdn: `${relative}cdn/`,
-  LICENSE: `./buildAssets/LICENSE`,
-  BANNER: `./buildAssets/BANNER`,
-  // libs only
   entry: `${relative}src/main.js`,
   plugins: `${relative}src/plugins/*.js`,
   serve: relative,
@@ -88,8 +85,6 @@ const paths = {
   sourceFiles: `${relative}src/**/*.js`,
   sourcemaps: ".",
   testConfig: `${cwd}/${relative}tests/karma.conf.js`,
-  docs_sass: "./docsTheme/assets/scss/main.scss",
-  docs_css: "./docsTheme/assets/css/"
 };
 const browser = browserSync.create();
 // stores bundle caches for rebundling with rollup
@@ -136,13 +131,14 @@ function formatLib (lib) {
 
 ********************************************************************/
 
-function bundle (options, type, minify) {
+function bundle (options, type, minify = false) {
   const filename = getBuildFile(type, minify);
   // rollup is faster if we pass in the previous bundle on a re-bundle
   options.cache = buildCaches[filename];
   // min files are prepended with LICENSE, non-min with BANNER
   options.banner = gutil.template(getFile(paths[minify ? "LICENSE" : "BANNER"]), { name: formatLib(activeLib), file: "" });
   if (isCombined) {
+    // force-binding must go before node-resolve
     options.plugins.push(forceBinding(config.forceBinding), nodeResolve());
     // combined bundles import all dependencies
     options.external = function external () { return false; }
@@ -150,7 +146,7 @@ function bundle (options, type, minify) {
     options.entry = libs.map(lib => {
       let path = `${getLibPath(lib)}/${paths.entry.replace(relative, "")}`;
       try { fs.accessSync(path); }
-      catch (error) { log('yellow', `Local ${formatLib(lib)} not found, it will not be in the bundle. Please verify your config.local.json path.`); }
+      catch (error) { log("yellow", `Local ${formatLib(lib)} not found, it will not be in the bundle. Please verify your config.local.json path.`); }
       return path;
     });
   } else {
@@ -180,19 +176,20 @@ function bundle (options, type, minify) {
     .pipe(source(filename))
     .pipe(buffer())
     .pipe(replace(/<%=\sversion\s%>/g, version)); // inject the build version into the bundle
-  if (minify) {
-    if (!isES6) {
+  if (!isES6) {
+    if (minify) {
       b = b.pipe(uglify(config.uglifyMin));
-    }
-  } else if (!isES6) {
-    b = b.pipe(uglify(config.uglifyNonMin))
-      .pipe(beautify(config.beautify));
-    // only non-min NEXT builds get sourcemaps
-    // remove the args from sourcemaps.write() to make it an inlined map.
-    if (isNext) {
-      b = b.pipe(sourcemaps.init({ loadMaps: true }))
-        // .pipe(sourcemaps.write());
-        .pipe(sourcemaps.write(paths.sourcemaps, { mapFile }));
+    } else {
+      // uglify strips comments, beautify re-indents and cleans up whitespace
+      b = b.pipe(uglify(config.uglifyNonMin))
+        .pipe(beautify(config.beautify));
+      // only unminified global NEXT builds get sourcemaps
+      if (type.length === 0 && isNext) {
+        // remove the args from sourcemaps.write() to make it an inlined map.
+        b = b.pipe(sourcemaps.init({ loadMaps: true }))
+        //.pipe(sourcemaps.write());
+          .pipe(sourcemaps.write(paths.sourcemaps, { mapFile }));
+      }
     }
   }
   return b.pipe(gulp.dest(paths.dist));
@@ -201,35 +198,32 @@ function bundle (options, type, minify) {
 // multi-entry reads main.js from each lib for a combined bundle.
 // node-resolve grabs the shared createjs files and compiles/bundles them with the rest of the lib
 gulp.task("bundle:es6", function () {
-  let options = {
+  return bundle({
     format: "es",
     plugins: [ multiEntry() ]
-  };
-  return bundle(options, "es6", false);
+  }, "es6");
 });
 
 gulp.task("bundle:cjs", function () {
-  let options = {
+  return bundle({
     format: "cjs",
     plugins: [ babel(config.babel), multiEntry() ]
-  };
-  return merge(
-    bundle(options, "cjs", false),
-    bundle(options, "cjs", true)
-  );
+  }, "cjs");
 });
 
-gulp.task("bundle:global", function () {
-  let options = {
+gulp.task("bundle:global", gulp.parallel(function globalUnminified() {
+  return bundle({
     format: "iife",
     moduleName: "createjs",
     plugins: [ babel(config.babel), multiEntry() ]
-  };
-  return merge(
-    bundle(options, "", false),
-    bundle(options, "", true)
-  );
-});
+  }, "");
+}, function globalMinified () {
+  return bundle({
+    format: "iife",
+    moduleName: "createjs",
+    plugins: [ babel(config.babel), multiEntry() ]
+  }, "", true);
+}));
 
 /********************************************************************
 
@@ -238,13 +232,12 @@ gulp.task("bundle:global", function () {
 ********************************************************************/
 
 function plugin (options) {
-  let isIIFE = options.format === "iife";
-  let filename = `${options.entry.match(/(\w+)\.js$/)[1]}.${isIIFE ? "js" : "cjs.js"}`;
-  options.banner = gutil.template(getFile(paths.LICENSE), { name: filename.substring(0, filename.length - (isIIFE ? 3 : 7)), file: "" });
+  let isGlobal = options.format === "iife";
+  let filename = `${options.entry.match(/(\w+)\.js$/)[1]}.${isGlobal ? "js" : "cjs.js"}`;
+  options.banner = gutil.template(getFile(paths.BANNER), { name: filename.substring(0, filename.length - (isGlobal ? 3 : 7)), file: "" });
   return rollup(options)
     .pipe(source(filename))
     .pipe(buffer())
-    //.pipe(uglify(config.uglifyMin))
     .pipe(gulp.dest(`${paths.dist}plugins/`));
 }
 
