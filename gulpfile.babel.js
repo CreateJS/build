@@ -16,6 +16,7 @@ import rollup from "rollup-stream";
 import babel from "rollup-plugin-babel";
 import multiEntry from "rollup-plugin-multi-entry";
 import nodeResolve from "rollup-plugin-node-resolve";
+import forceBinding from "rollup-plugin-force-binding";
 
 import source from "vinyl-source-stream";
 import buffer from "vinyl-buffer";
@@ -27,6 +28,7 @@ import browserSync from "browser-sync";
 import karma from "karma";
 import yargs from "yargs";
 import fs from "fs";
+import path from "path";
 
 // TODO: Remove sourcemaps for any build that is not unminified NEXT.
 
@@ -45,7 +47,7 @@ function getFile (path) {
   try {
     return fs.readFileSync(path, { encoding: "utf-8" });
   } catch (error) {
-    log('yellow', `File '${path}' was not found. Returning 'undefined'.`);
+    log("yellow", `File '${path}' was not found. Returning 'undefined'.`);
     return undefined;
   }
 }
@@ -63,11 +65,13 @@ const relative = /node_modules/.test(cwd) ? "../../" : "./";
 // get the relative package and the universal config (overwritten by the local config)
 const pkg = JSON.parse(getFile(`${relative}package.json`));
 const config = defaults(readJSON("./config.local.json"), readJSON("./config.json"));
-const libs = [ "easel", "tween", "sound", "preload" ];
+// the order of the libs here is also the order that they will be bundled
+const libs = [ "tween", "easel", "sound", "preload" ];
 // quickrefs
 const activeLib = pkg.name;
 const version = pkg.version;
 const isCombined = activeLib === "createjs";
+const isNext = yargs.argv.hasOwnProperty("NEXT");
 const paths = {
   // universal
   dist: `${relative}dist/`,
@@ -118,12 +122,7 @@ function getLibPath (lib) {
 // returns a string of format activeLib-{version}(.type)(.min).js
 // global modules have no type
 function getBuildFile (type, minify) {
-  return `${activeLib}-${isNext() ? "NEXT" : version}${type.length? `.${type}` : ""}${minify ? ".min" : ""}.js`;
-}
-
-// quickref for NEXT builds. Has to be function since a property will be stored prior to a run.
-function isNext () {
-  return yargs.argv.hasOwnProperty("NEXT");
+  return `${activeLib}-${isNext ? "NEXT" : version}${type.length? `.${type}` : ""}${minify ? ".min" : ""}.js`;
 }
 
 // makes "easel" or "easeljs" look like "EaselJS"
@@ -144,32 +143,32 @@ function bundle (options, type, minify) {
   // min files are prepended with LICENSE, non-min with BANNER
   options.banner = gutil.template(getFile(paths[minify ? "LICENSE" : "BANNER"]), { name: formatLib(activeLib), file: "" });
   if (isCombined) {
+    options.plugins.push(forceBinding(config.forceBinding), nodeResolve());
     // combined bundles import all dependencies
-    options.external = function () { return false; }
-  } else {
-    // cross-library dependencies must remain externalized for individual bundles
-    let g = options.globals = {};
-    g.tweenjs = g.easeljs = g.preloadjs = g.soundjs = 'createjs';
-
-    const externalDependencyRegex = new RegExp(`^(${libs.join('|')})js$`);
-    options.external = function external (id) {
-      let match = id.match(externalDependencyRegex);
-      if (match !== null) {
-        log('green', `Externalizing cross-library dependency for ${formatLib(match[1])}`);
-        return true;
-      }
-      return false;
-    };
-  }
-  if (isCombined) {
+    options.external = function external () { return false; }
     // multi-entry rollup plugin will handle the src/main paths for all libs
     options.entry = libs.map(lib => {
       let path = `${getLibPath(lib)}/${paths.entry.replace(relative, "")}`;
       try { fs.accessSync(path); }
-      catch (error) { log('yellow', `Local ${lib[0].toUpperCase() + lib.slice(1)}JS not found, it will not be in the bundle. Please verify your config.local.json path.`); }
+      catch (error) { log('yellow', `Local ${formatLib(lib)} not found, it will not be in the bundle. Please verify your config.local.json path.`); }
       return path;
     });
   } else {
+    options.plugins.push(nodeResolve());
+    // cross-library dependencies must remain externalized for individual bundles
+    let g = options.globals = {};
+    g.tweenjs = g.easeljs = g.preloadjs = g.soundjs = "this.createjs";
+
+    const externalDependencyRegex = new RegExp(`^(${libs.join("|")})js$`);
+    options.external = function external (id) {
+      let match = id.match(externalDependencyRegex);
+      if (match !== null) {
+        log("green", `Externalizing cross-library dependency for ${formatLib(match[1])}`);
+        return true;
+      }
+      return false;
+    };
+
     options.entry = paths.entry;
   }
 
@@ -185,15 +184,16 @@ function bundle (options, type, minify) {
     if (!isES6) {
       b = b.pipe(uglify(config.uglifyMin));
     }
-  } else {
-    if (!isES6) {
-      b = b.pipe(uglify(config.uglifyNonMin))
-        .pipe(beautify(config.beautify));
-    }
-    // only non-min builds get sourcemaps
+  } else if (!isES6) {
+    b = b.pipe(uglify(config.uglifyNonMin))
+      .pipe(beautify(config.beautify));
+    // only non-min NEXT builds get sourcemaps
     // remove the args from sourcemaps.write() to make it an inlined map.
-    b = b.pipe(sourcemaps.init({ loadMaps: true }))
-      .pipe(sourcemaps.write(paths.sourcemaps, { mapFile }));
+    if (isNext) {
+      b = b.pipe(sourcemaps.init({ loadMaps: true }))
+        // .pipe(sourcemaps.write());
+        .pipe(sourcemaps.write(paths.sourcemaps, { mapFile }));
+    }
   }
   return b.pipe(gulp.dest(paths.dist));
 }
@@ -203,7 +203,7 @@ function bundle (options, type, minify) {
 gulp.task("bundle:es6", function () {
   let options = {
     format: "es",
-    plugins: [ multiEntry(), nodeResolve() ]
+    plugins: [ multiEntry() ]
   };
   return bundle(options, "es6", false);
 });
@@ -211,7 +211,7 @@ gulp.task("bundle:es6", function () {
 gulp.task("bundle:cjs", function () {
   let options = {
     format: "cjs",
-    plugins: [ babel(config.babel), multiEntry(), nodeResolve() ]
+    plugins: [ babel(config.babel), multiEntry() ]
   };
   return merge(
     bundle(options, "cjs", false),
@@ -223,7 +223,7 @@ gulp.task("bundle:global", function () {
   let options = {
     format: "iife",
     moduleName: "createjs",
-    plugins: [ babel(config.babel), multiEntry(), nodeResolve() ]
+    plugins: [ babel(config.babel), multiEntry() ]
   };
   return merge(
     bundle(options, "", false),
@@ -252,7 +252,7 @@ function plugin (options) {
 gulp.task("plugins", function (done) {
   let stub = paths.plugins.substring(0, paths.plugins.length - 4);
   try { fs.accessSync(path); }
-  catch (error) { log('yellow', `No plugins found for ${formatLib(activeLib)}.`); done(); return; }
+  catch (error) { log("yellow", `No plugins found for ${formatLib(activeLib)}.`); done(); return; }
   let plugins = fs.readdirSync(stub);
   let iife = plugins.map(entry => plugin({
     entry: stub + entry,
@@ -278,7 +278,7 @@ gulp.task("plugins", function (done) {
 
 // only clean the NEXT builds. Main builds are stored until manually deleted.
 gulp.task("clean:dist", function (done) {
-  if (isNext()) {
+  if (isNext) {
     return del([ `${paths.dist}*NEXT*.{js,map}` ], { force: true });
   }
   done();
@@ -333,7 +333,7 @@ gulp.task("yuidoc", shell.task(`cd ${relative} && yuidoc ./node_modules/createjs
 gulp.task("zip:docs", function () {
   let path = paths.docs;
   return gulp.src(`${path}**/!(*.zip)`)
-    .pipe(zip(`docs_${activeLib}-${isNext() ? "NEXT" : version}.zip`))
+    .pipe(zip(`docs_${activeLib}-${isNext ? "NEXT" : version}.zip`))
     .pipe(gulp.dest(path));
 });
 
@@ -490,7 +490,7 @@ gulp.task("link", shell.task(
     try { fs.accessSync(process.execPath.replace("node.exe", "node_modules/createjs")); }
     catch (err) { linked = false; }
     return (linked ? [] : [ "npm link ." ]).concat(
-      yargs.argv.hasOwnProperty('all')
+      yargs.argv.hasOwnProperty("all")
         ? libs.map(lib => `cd ${getLibPath(lib)} && npm link createjs`)
         : [ `cd ${getLibPath((yargs.argv.lib || "").replace("js", "").toLowerCase())} && npm link createjs` ]
     );

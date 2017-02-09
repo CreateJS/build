@@ -28,5 +28,7 @@
     "externalHelpersWhitelist": [
       "classCallCheck", "createClass", "inherits", "possibleConstructorReturn"
     ]
-  }
+  },
+
+  "forceBinding": [ "Event", "EventDispatcher", "Ticker", "Tween", "Timeline" ]
 }

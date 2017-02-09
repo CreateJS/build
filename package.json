@@ -16,20 +16,20 @@
   ],
   "homepage": "http://www.createjs.com",
   "url": "https://www.npmjs.com/package/createjs",
-  "bugs": "https://github.com:CreateJS/CreateJS/issues",
+  "bugs": "https://github.com/CreateJS/CreateJS/issues",
   "license": "MIT",
   "contributors": [
     "Grant Skinner <grant@gskinner.com> (https://github.com/gskinner)",
     "Lanny McNie <lanny@gskinner.com> (https://github.com/lannymcnie)",
     "Wes Gorgichuk <wes@gskinner.com> (https://github.com/wdamien)",
-    "Patrick McGuckin <patrick@gskinner.com> (https://github.com/tehvgg)",
+    "Patrick McGuckin <patrick@gskinner.com> (https://github.com/tehvgg)"
   ],
   "main": "dist/createjs.cjs.js",
   "jsnext:main": "dist/createjs.es6.js",
   "logo": "icon.png",
   "repository": {
     "type": "git",
-    "url": "https://github.com:CreateJS/CreateJS"
+    "url": "https://github.com/CreateJS/CreateJS"
   },
   "scripts": {
     "post-install": "npm dedupe",
@@ -77,6 +77,7 @@
     "lodash.defaults": "^4.2.0",
     "merge-stream": "^1.0.0",
     "rollup-plugin-babel": "^2.7.1",
+    "rollup-plugin-force-binding": "^1.0.0",
     "rollup-plugin-multi-entry": "^2.0.1",
     "rollup-plugin-node-resolve": "^2.0.0",
     "rollup-stream": "^1.12.0",
