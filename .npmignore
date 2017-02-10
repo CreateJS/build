@@ -9,4 +9,6 @@ gulpfile.babel.js
 icon.png
 bower.json
 
-# dist/[a-z]-[0-9,.]+?(min|combined).js
+dist/*.js
+!dist/createjs.cjs.js
+!dist/createjs.es6.js
