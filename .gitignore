@@ -7,3 +7,5 @@ cdn/build/
 config.local.json
 *[\<\>\:\"\/\\\|\?\*]*
 npm-debug.log
+dist/createjs.cjs.js
+dist/createjs.es6.js

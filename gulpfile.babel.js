@@ -142,7 +142,7 @@ function getLibPath (lib) {
 // returns a string of format activeLib-{version}(.type)(.min).js
 // global modules have no type
 function getBuildFile (type, minify) {
-  return `${activeLib}-${isNext ? "NEXT" : version}${type.length? `.${type}` : ""}${minify ? ".min" : ""}.js`;
+  return `${activeLib}${type.length ? `.${type}` : `-${isNext ? "NEXT" : version}`}${minify ? ".min" : ""}.js`;
 }
 
 // makes "easel" or "easeljs" look like "EaselJS"

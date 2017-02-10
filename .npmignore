@@ -8,3 +8,5 @@ config.local.json
 gulpfile.babel.js
 icon.png
 bower.json
+
+# dist/[a-z]-[0-9,.]+?(min|combined).js
