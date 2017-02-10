@@ -17,6 +17,8 @@ import babel from "rollup-plugin-babel";
 import multiEntry from "rollup-plugin-multi-entry";
 import nodeResolve from "rollup-plugin-node-resolve";
 import forceBinding from "rollup-plugin-force-binding";
+import progress from "rollup-plugin-progress";
+import filesize from "rollup-plugin-filesize";
 
 import source from "vinyl-source-stream";
 import buffer from "vinyl-buffer";
@@ -34,6 +36,17 @@ import fs from "fs";
   CONSTANTS & UTILITIES
 
 ********************************************************************/
+
+function setNodeEnv (env) {
+  return function setNodeEnv (done) {
+    process.env.NODE_ENV = env;
+    done();
+  };
+}
+
+function isNodeEnv (env) {
+  return process.env.NODE_ENV === env;
+}
 
 function log (color, ...text) {
   gutil.log(gutil.colors[color](...text));
@@ -55,6 +68,8 @@ function readJSON (path) {
   return file ? JSON.parse(file) : {};
 }
 
+const PRODUCTION = "production";
+const DEVELOPMENT = "development";
 // cwd will always be the createjs dir
 const cwd = process.cwd();
 // figure out of we're calling from a lib or directly
@@ -100,9 +115,19 @@ config.uglifyMin.preserveComments = function (node, comment) {
 config.uglifyNonMin.preserveComments = function (node, comment) {
   // preserve the injected license header
   if (comment.line === 1) { return true; }
-  // strip individual file license headers or any comment containing an @uglify tag.
+  // strip documentation blocks
   return !(/(@uglify|@license|copyright)/i.test(comment.value));
 };
+config.filesize = {
+  render (name, options, size) {
+    return gutil.colors.cyan(`\n== ${name} bundle size: ${size} ==\n`);
+  }
+};
+
+// return a custom render function to list the bundle name.
+function getFileSizeConfig (name) {
+  return { render: config.filesize.render.bind(null, name) }
+}
 
 // replace .js with .map for sourcemaps
 function mapFile (filename) {
@@ -137,11 +162,12 @@ function bundle (options, type, minify = false) {
   options.cache = buildCaches[filename];
   // min files are prepended with LICENSE, non-min with BANNER
   options.banner = gutil.template(getFile(paths[minify ? "LICENSE" : "BANNER"]), { name: formatLib(activeLib), file: "" });
+  if (isNodeEnv(PRODUCTION)) { options.plugins.push(filesize(getFileSizeConfig(filename))); }
   if (isCombined) {
     // force-binding must go before node-resolve
-    options.plugins.push(forceBinding(config.forceBinding), nodeResolve());
+    options.plugins.push(multiEntry(), forceBinding(config.forceBinding), nodeResolve());
     // combined bundles import all dependencies
-    options.external = function external () { return false; }
+    options.external = function external () { return false; };
     // multi-entry rollup plugin will handle the src/main paths for all libs
     options.entry = libs.map(lib => {
       let path = `${getLibPath(lib)}/${paths.entry.replace(relative, "")}`;
@@ -150,11 +176,11 @@ function bundle (options, type, minify = false) {
       return path;
     });
   } else {
+    if (isNodeEnv(DEVELOPMENT)) { options.plugins.push(progress()); }
     options.plugins.push(nodeResolve());
     // cross-library dependencies must remain externalized for individual bundles
     let g = options.globals = {};
     g.tweenjs = g.easeljs = g.preloadjs = g.soundjs = "this.createjs";
-
     const externalDependencyRegex = new RegExp(`^(${libs.join("|")})js$`);
     options.external = function external (id) {
       let match = id.match(externalDependencyRegex);
@@ -183,8 +209,8 @@ function bundle (options, type, minify = false) {
       // uglify strips comments, beautify re-indents and cleans up whitespace
       b = b.pipe(uglify(config.uglifyNonMin))
         .pipe(beautify(config.beautify));
-      // only unminified global NEXT builds get sourcemaps
-      if (type.length === 0 && isNext) {
+      // only development builds get sourcemaps
+      if (isNodeEnv(DEVELOPMENT)) {
         // remove the args from sourcemaps.write() to make it an inlined map.
         b = b.pipe(sourcemaps.init({ loadMaps: true }))
         //.pipe(sourcemaps.write());
@@ -200,30 +226,32 @@ function bundle (options, type, minify = false) {
 gulp.task("bundle:es6", function () {
   return bundle({
     format: "es",
-    plugins: [ multiEntry() ]
+    plugins: []
   }, "es6");
 });
 
 gulp.task("bundle:cjs", function () {
   return bundle({
     format: "cjs",
-    plugins: [ babel(config.babel), multiEntry() ]
+    plugins: [ babel(config.babel) ]
   }, "cjs");
 });
 
-gulp.task("bundle:global", gulp.parallel(function globalUnminified() {
+gulp.task("bundle:global", function () {
   return bundle({
     format: "iife",
     moduleName: "createjs",
-    plugins: [ babel(config.babel), multiEntry() ]
+    plugins: [ babel(config.babel) ]
   }, "");
-}, function globalMinified () {
+});
+
+gulp.task("bundle:global:min", function () {
   return bundle({
     format: "iife",
     moduleName: "createjs",
-    plugins: [ babel(config.babel), multiEntry() ]
+    plugins: [ babel(config.babel) ]
   }, "", true);
-}));
+});
 
 /********************************************************************
 
@@ -231,8 +259,7 @@ gulp.task("bundle:global", gulp.parallel(function globalUnminified() {
 
 ********************************************************************/
 
-function plugin (options) {
-  let isGlobal = options.format === "iife";
+function plugin (options, isGlobal) {
   let filename = `${options.entry.match(/(\w+)\.js$/)[1]}.${isGlobal ? "js" : "cjs.js"}`;
   options.banner = gutil.template(getFile(paths.BANNER), { name: filename.substring(0, filename.length - (isGlobal ? 3 : 7)), file: "" });
   return rollup(options)
@@ -244,7 +271,7 @@ function plugin (options) {
 // only clean the NEXT builds. Main builds are stored until manually deleted.
 gulp.task("plugins", function (done) {
   let stub = paths.plugins.substring(0, paths.plugins.length - 4);
-  try { fs.accessSync(path); }
+  try { fs.accessSync(stub); }
   catch (error) { log("yellow", `No plugins found for ${formatLib(activeLib)}.`); done(); return; }
   let plugins = fs.readdirSync(stub);
   let iife = plugins.map(entry => plugin({
@@ -252,13 +279,13 @@ gulp.task("plugins", function (done) {
     format: "iife",
     moduleName: "createjs",
     plugins: [ babel(config.babel) ]
-  }));
+  }, true));
 
   let cjs = plugins.map(entry => plugin({
     entry: stub + entry,
     format: "cjs",
     plugins: [ babel(config.babel) ]
-  }));
+  }, false));
 
   return merge(...iife, ...cjs);
 });
@@ -288,10 +315,12 @@ gulp.task("copy:build", function (done) {
 });
 
 gulp.task("build", gulp.series(
+  setNodeEnv(PRODUCTION),
   "clean:dist",
   gulp.parallel(
     "bundle:cjs",
     "bundle:global",
+    "bundle:global:min",
     "bundle:es6",
     "plugins"
   ),
@@ -404,6 +433,7 @@ gulp.task("watch:dev", function () {
 });
 
 gulp.task("dev", gulp.series(
+  setNodeEnv(DEVELOPMENT),
   "clean:dist",
   gulp.parallel(
     "bundle:global",
