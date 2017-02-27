@@ -30,5 +30,10 @@
     ]
   },
 
-  "forceBinding": [ "Event", "EventDispatcher", "Ticker", "Tween", "Timeline" ]
+  "forceBinding": [ "Event", "EventDispatcher", "Ticker", "Tween", "Timeline" ],
+
+  "rollupGlobals": {
+    "tweenjs/src/Tween": "this.createjs.Tween",
+    "tweenjs/src/Timeline": "this.createjs.Timeline"
+  }
 }

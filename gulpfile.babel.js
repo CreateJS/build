@@ -17,8 +17,6 @@ import babel from "rollup-plugin-babel";
 import multiEntry from "rollup-plugin-multi-entry";
 import nodeResolve from "rollup-plugin-node-resolve";
 import forceBinding from "rollup-plugin-force-binding";
-import progress from "rollup-plugin-progress";
-import filesize from "rollup-plugin-filesize";
 
 import source from "vinyl-source-stream";
 import buffer from "vinyl-buffer";
@@ -118,16 +116,6 @@ config.uglifyNonMin.preserveComments = function (node, comment) {
   // strip documentation blocks
   return !(/(@uglify|@license|copyright)/i.test(comment.value));
 };
-config.filesize = {
-  render (name, options, size) {
-    return gutil.colors.cyan(`\n== ${name} bundle size: ${size} ==\n`);
-  }
-};
-
-// return a custom render function to list the bundle name.
-function getFileSizeConfig (name) {
-  return { render: config.filesize.render.bind(null, name) }
-}
 
 // replace .js with .map for sourcemaps
 function mapFile (filename) {
@@ -162,7 +150,6 @@ function bundle (options, type, minify = false) {
   options.cache = buildCaches[filename];
   // min files are prepended with LICENSE, non-min with BANNER
   options.banner = gutil.template(getFile(paths[minify ? "LICENSE" : "BANNER"]), { name: formatLib(activeLib), file: "" });
-  if (isNodeEnv(PRODUCTION)) { options.plugins.push(filesize(getFileSizeConfig(filename))); }
   if (isCombined) {
     // force-binding must go before node-resolve
     options.plugins.push(multiEntry(), forceBinding(config.forceBinding), nodeResolve());
@@ -176,16 +163,13 @@ function bundle (options, type, minify = false) {
       return path;
     });
   } else {
-    if (isNodeEnv(DEVELOPMENT)) { options.plugins.push(progress()); }
     options.plugins.push(nodeResolve());
     // cross-library dependencies must remain externalized for individual bundles
-    let g = options.globals = {};
-    g.tweenjs = g.easeljs = g.preloadjs = g.soundjs = "this.createjs";
-    const externalDependencyRegex = new RegExp(`^(${libs.join("|")})js$`);
+    const externalDependencyRegex = new RegExp(`^(${Object.keys(options.globals = config.rollupGlobals).map(g => g.replace('/', '\/')).join('|')})$`);
     options.external = function external (id) {
       let match = id.match(externalDependencyRegex);
       if (match !== null) {
-        log("green", `Externalizing cross-library dependency for ${formatLib(match[1])}`);
+        log("green", `Externalizing cross-library dependency for ${match[1]}`);
         return true;
       }
       return false;
@@ -259,7 +243,7 @@ gulp.task("bundle:global:min", function () {
 
 ********************************************************************/
 
-function plugin (options, isGlobal) {
+function transpilePlugin (options, isGlobal) {
   let filename = `${options.entry.match(/(\w+)\.js$/)[1]}.${isGlobal ? "js" : "cjs.js"}`;
   options.banner = gutil.template(getFile(paths.BANNER), { name: filename.substring(0, filename.length - (isGlobal ? 3 : 7)), file: "" });
   return rollup(options)
@@ -274,14 +258,14 @@ gulp.task("plugins", function (done) {
   try { fs.accessSync(stub); }
   catch (error) { log("yellow", `No plugins found for ${formatLib(activeLib)}.`); done(); return; }
   let plugins = fs.readdirSync(stub);
-  let iife = plugins.map(entry => plugin({
+  let iife = plugins.map(entry => transpilePlugin({
     entry: stub + entry,
     format: "iife",
     moduleName: "createjs",
     plugins: [ babel(config.babel) ]
   }, true));
 
-  let cjs = plugins.map(entry => plugin({
+  let cjs = plugins.map(entry => transpilePlugin({
     entry: stub + entry,
     format: "cjs",
     plugins: [ babel(config.babel) ]
@@ -324,6 +308,13 @@ gulp.task("build", gulp.series(
     "bundle:es6",
     "plugins"
   ),
+  "copy:build"
+));
+
+gulp.task("build:next", gulp.series(
+  setNodeEnv(DEVELOPMENT),
+  "clean:dist",
+  "bundle:global",
   "copy:build"
 ));
 
@@ -407,7 +398,13 @@ gulp.task("zip:cdn", function () {
     .pipe(gulp.dest(path));
 });
 
-gulp.task("cdn", gulp.series("clean:cdn", "sass:cdn", "render:cdn", "copy:cdn", "zip:cdn"));
+gulp.task("cdn", gulp.series(
+  "clean:cdn",
+  "sass:cdn",
+  "render:cdn",
+  "copy:cdn",
+  "zip:cdn"
+));
 
 /********************************************************************
 
