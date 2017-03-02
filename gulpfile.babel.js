@@ -117,11 +117,6 @@ config.uglifyNonMin.preserveComments = function (node, comment) {
   return !(/(@uglify|@license|copyright)/i.test(comment.value));
 };
 
-// replace .js with .map for sourcemaps
-function mapFile (filename) {
-  return filename.replace(".js", "");
-}
-
 // return the lib path from the config
 function getLibPath (lib) {
   return config[`${lib}_path`];
@@ -197,8 +192,7 @@ function bundle (options, type, minify = false) {
       if (isNodeEnv(DEVELOPMENT)) {
         // remove the args from sourcemaps.write() to make it an inlined map.
         b = b.pipe(sourcemaps.init({ loadMaps: true }))
-        //.pipe(sourcemaps.write());
-          .pipe(sourcemaps.write(paths.sourcemaps, { mapFile }));
+          .pipe(sourcemaps.write(paths.sourcemaps));
       }
     }
   }
@@ -283,7 +277,7 @@ gulp.task("plugins", function (done) {
 // only clean the NEXT builds. Main builds are stored until manually deleted.
 gulp.task("clean:dist", function (done) {
   if (isNext) {
-    return del([ `${paths.dist}*NEXT*.{js,map}` ], { force: true });
+    return del([ `${paths.dist}*NEXT*` ], { force: true });
   }
   done();
 });
@@ -472,6 +466,7 @@ gulp.task("watch:test", function () {
 });
 
 gulp.task("test", gulp.series(
+  setNodeEnv(DEVELOPMENT),
   "clean:dist",
   gulp.parallel(
     "bundle:global",
