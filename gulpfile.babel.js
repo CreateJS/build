@@ -103,14 +103,14 @@ const browser = browserSync.create();
 // stores bundle caches for rebundling with rollup
 const buildCaches = {};
 
-// overwrite the preserveComments strings in the config with functions
-config.uglifyMin.preserveComments = function (node, comment) {
+// overwrite the comments strings in the config with functions
+config.uglifyMin.output.comments = function (node, comment) {
 	// preserve the injected license header
 	if (comment.line === 1) { return true; }
 	// strip everything else
 	return false;
 };
-config.uglifyNonMin.preserveComments = function (node, comment) {
+config.uglifyNonMin.output.comments = function (node, comment) {
 	// preserve the injected license header
 	if (comment.line === 1) { return true; }
 	// strip documentation blocks
@@ -149,16 +149,16 @@ function bundle (options, type, minify = false) {
 	// rollup is faster if we pass in the previous bundle on a re-bundle
 	options.cache = buildCaches[filename];
 	// min files are prepended with LICENSE, non-min with BANNER
-	options.banner = gutil.template(getFile(paths[minify ? "LICENSE" : "BANNER"]), { name: formatLib(activeLib), file: "" });
+	options.banner = gutil.template(getFile(paths[minify ? "LICENSE" : "BANNER"]), { name: nameToCamelCase(activeLib), file: "" });
 	if (isCombined) {
 		// force-binding must go before node-resolve
 		options.plugins.push(multiEntry(), forceBinding(config.forceBinding), nodeResolve());
 		// combined bundles import all dependencies
 		options.external = function external() { return false; };
 		// multi-entry rollup plugin will handle the src/main paths for all libs
-		options.entry = libs.map(lib => {
+		options.input = libs.map(lib => {
 			let path = `${getLibPath(lib)}/${paths.entry.replace(relative, "")}`;
-			try { fs.accessSync(path); } catch (error) { log("yellow", `Local ${formatLib(lib)} not found, it will not be in the bundle. Please verify your config.local.json path.`); }
+			try { fs.accessSync(path); } catch (error) { log("yellow", `Local ${nameToCamelCase(lib)} not found, it will not be in the bundle. Please verify your config.local.json path.`); }
 			return path;
 		});
 	} else {
@@ -174,7 +174,7 @@ function bundle (options, type, minify = false) {
 			return false;
 		};
 
-		options.entry = paths.entry;
+		options.input = paths.entry;
 	}
 
 	// uglify and beautify do not currently support ES6 (at least in a stable manner)
@@ -222,7 +222,7 @@ gulp.task("bundle:cjs", function () {
 gulp.task("bundle:global", function () {
 	return bundle({
 		format: "iife",
-		moduleName: "createjs",
+		name: "createjs",
 		plugins: [babel(config.babel)]
 	}, "");
 });
@@ -230,7 +230,7 @@ gulp.task("bundle:global", function () {
 gulp.task("bundle:global:min", function () {
 	return bundle({
 		format: "iife",
-		moduleName: "createjs",
+		name: "createjs",
 		plugins: [babel(config.babel)]
 	}, "", true);
 });
@@ -256,7 +256,7 @@ gulp.task("plugins", function (done) {
 	try {
 		fs.accessSync(stub);
 	} catch (error) {
-		log("yellow", `No plugins found for ${formatLib(activeLib)}.`);
+		log("yellow", `No plugins found for ${nameToCamelCase(activeLib)}.`);
 		done();
 		return;
 	}
@@ -264,7 +264,7 @@ gulp.task("plugins", function (done) {
 	let iife = plugins.map(entry => transpilePlugin({
 		entry: stub + entry,
 		format: "iife",
-		moduleName: "createjs",
+		name: "createjs",
 		plugins: [babel(config.babel)]
 	}, true));
 

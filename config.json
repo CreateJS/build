@@ -5,7 +5,9 @@
   "preload_path": "../PreloadJS",
 
   "uglifyMin": {
-    "preserveComments": "function set in gulpfile",
+    "output": {
+      "comments": "function set in gulpfile"
+    },
     "compress": {
       "global_defs": {
         "DEBUG": false
@@ -14,8 +16,10 @@
   },
 
   "uglifyNonMin": {
+    "output": {
+      "comments": "function set in gulpfile"
+    },
     "mangle": false,
-    "preserveComments": "function set in gulpfile",
     "compress": false
   },
 

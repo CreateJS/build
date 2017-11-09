@@ -1,9 +1,9 @@
 {
-	"presets": [[
-		"@babel/preset-env", {
+	"presets": [
+		["env", {
 			"modules": false,
 			"loose": true
-		}
-	]],
-	"plugins": [ "@babel/external-helpers" ]
+		}]
+	],
+	"plugins": [ "external-helpers" ]
 }
