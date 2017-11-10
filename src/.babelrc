@@ -1,9 +1,16 @@
 {
 	"presets": [
-		["env", {
-			"modules": false,
-			"loose": true
-		}]
+		[
+			"env", {
+				"targets": {
+					"browsers": "last 2 versions"
+				},
+				"modules": false,
+				"loose": true
+			}
+		]
 	],
-	"plugins": [ "external-helpers" ]
+	"plugins": [
+		"external-helpers"
+	]
 }

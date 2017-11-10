@@ -17,6 +17,7 @@ import babel from "rollup-plugin-babel";
 import multiEntry from "rollup-plugin-multi-entry";
 import nodeResolve from "rollup-plugin-node-resolve";
 import forceBinding from "rollup-plugin-force-binding";
+import exportsExtend from "rollup-plugin-exports-extend";
 
 import source from "vinyl-source-stream";
 import buffer from "vinyl-buffer";
@@ -84,8 +85,8 @@ const isCombined = activeLib === "createjs";
 const isNext = yargs.argv.hasOwnProperty("NEXT");
 const paths = {
 	cdn: "./cdn/",
-	LICENSE: "./buildAssets/LICENSE",
-	BANNER: "./buildAssets/BANNER",
+	LICENSE: "./assets/LICENSE",
+	BANNER: "./assets/BANNER",
 	docs_sass: "./docsTheme/assets/scss/main.scss",
 	docs_css: "./docsTheme/assets/css/",
 	dist: `${relative}dist/`,
@@ -150,6 +151,8 @@ function bundle (options, type, minify = false) {
 	options.cache = buildCaches[filename];
 	// min files are prepended with LICENSE, non-min with BANNER
 	options.banner = gutil.template(getFile(paths[minify ? "LICENSE" : "BANNER"]), { name: nameToCamelCase(activeLib), file: "" });
+	// exports are named
+	options.exports = 'named';
 	if (isCombined) {
 		// force-binding must go before node-resolve
 		options.plugins.push(multiEntry(), forceBinding(config.forceBinding), nodeResolve());
@@ -162,7 +165,8 @@ function bundle (options, type, minify = false) {
 			return path;
 		});
 	} else {
-		options.plugins.push(nodeResolve());
+		// point the top level export to an existing createjs
+		options.plugins.push(nodeResolve(), exportsExtend(config.exportsExtend));
 		// cross-library dependencies must remain externalized for individual bundles
 		const externalDependencyRegex = new RegExp(`^(${Object.keys(options.globals = config.rollupGlobals).map(g => g.replace('/', '\/')).join('|')})$`);
 		options.external = function external(id) {
@@ -242,8 +246,8 @@ gulp.task("bundle:global:min", function () {
 ********************************************************************/
 
 function transpilePlugin (options, isGlobal) {
-	let filename = `${options.entry.match(/(\w+)\.js$/)[1]}.${isGlobal ? "js" : "cjs.js"}`;
-	options.banner = gutil.template(getFile(paths.BANNER), { name: filename.substring(0, filename.length - (isGlobal ? 3 : 7)), file: "" });
+	let filename = `${options.input.match(/(\w+)\.js$/)[1]}.${isGlobal ? "js" : "common.js"}`;
+	options.banner = gutil.template(getFile(paths.BANNER), { name: filename.substring(0, filename.length - (isGlobal ? 3 : 10)), file: "" });
 	return rollup(options)
 		.pipe(source(filename))
 		.pipe(buffer())
@@ -262,14 +266,14 @@ gulp.task("plugins", function (done) {
 	}
 	let plugins = fs.readdirSync(stub);
 	let iife = plugins.map(entry => transpilePlugin({
-		entry: stub + entry,
+		input: stub + entry,
 		format: "iife",
 		name: "createjs",
 		plugins: [babel(config.babel)]
 	}, true));
 
 	let cjs = plugins.map(entry => transpilePlugin({
-		entry: stub + entry,
+		input: stub + entry,
 		format: "cjs",
 		plugins: [babel(config.babel)]
 	}, false));

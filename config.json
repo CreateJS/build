@@ -1,43 +1,45 @@
 {
-  "easel_path": "../EaselJS",
-  "tween_path": "../TweenJS",
-  "sound_path": "../SoundJS",
-  "preload_path": "../PreloadJS",
+	"easel_path": "../EaselJS",
+	"tween_path": "../TweenJS",
+	"sound_path": "../SoundJS",
+	"preload_path": "../PreloadJS",
 
-  "uglifyMin": {
-    "output": {
-      "comments": "function set in gulpfile"
-    },
-    "compress": {
-      "global_defs": {
-        "DEBUG": false
-      }
-    }
-  },
+	"uglifyMin": {
+		"output": {
+			"comments": "function set in gulpfile"
+		},
+		"compress": {
+			"global_defs": {
+				"DEBUG": false
+			}
+		}
+	},
 
-  "uglifyNonMin": {
-    "output": {
-      "comments": "function set in gulpfile"
-    },
-    "mangle": false,
-    "compress": false
-  },
+	"uglifyNonMin": {
+		"output": {
+			"comments": "function set in gulpfile"
+		},
+		"mangle": false,
+		"compress": false
+	},
 
-  "beautify": {
-    "indent_size": 2,
-    "max_preserve_newlines": 1
-  },
+	"beautify": {
+		"indent_size": 2,
+		"max_preserve_newlines": 1
+	},
 
-  "babel": {
-    "externalHelpersWhitelist": [
-      "classCallCheck", "createClass", "inherits", "possibleConstructorReturn"
-    ]
-  },
+	"babel": {
+		"externalHelpersWhitelist": ["classCallCheck", "createClass", "inherits", "possibleConstructorReturn"]
+	},
 
-  "forceBinding": [ "Event", "EventDispatcher", "Ticker", "Tween", "Timeline" ],
+	"forceBinding": [
+		"Event", "EventDispatcher", "Ticker", "Tween", "Timeline"
+	],
 
-  "rollupGlobals": {
-    "tweenjs/src/Tween": "this.createjs.Tween",
-    "tweenjs/src/Timeline": "this.createjs.Timeline"
-  }
+	"exportsExtend": "this.createjs || {}",
+
+	"rollupGlobals": {
+		"tweenjs/src/Tween": "this.createjs.Tween",
+		"tweenjs/src/Timeline": "this.createjs.Timeline"
+	}
 }
