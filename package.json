@@ -84,6 +84,7 @@
     "karma-sourcemap-loader": "^0.3.7",
     "lodash.defaults": "^4.2.0",
     "merge-stream": "^1.0.0",
+    "multipipe": "^1.0.2",
     "rollup-plugin-babel": "^3.0.2",
     "rollup-plugin-exports-extend": "^1.0.8",
     "rollup-plugin-force-binding": "^1.0.6",
