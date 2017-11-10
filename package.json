@@ -1,50 +1,35 @@
 {
-  "name": "createjs",
-  "version": "2.0.0",
-  "description": "CreateJS is a JavaScript suite for developers looking to control the true power of HTML5's canvas element.",
+  "name": "@createjs/build",
+  "version": "1.0.0",
+  "description": "The ",
   "keywords": [
-    "html5",
-    "canvas",
-    "easeljs",
-    "tweenjs",
-    "soundjs",
-    "preloadjs",
     "createjs",
-    "gskinner",
-    "flash",
-    "animate"
+    "easel",
+    "tween",
+    "preload",
+    "sound",
+    "gskinner"
   ],
-  "homepage": "http://www.createjs.com",
-  "url": "https://www.npmjs.com/package/createjs",
-  "bugs": "https://github.com/CreateJS/CreateJS/issues",
+  "homepage": "http://createjs.com",
+  "url": "https://npmjs.com/package/@createjs/build",
+  "bugs": "https://github.com/createjs/build/issues",
   "license": "MIT",
   "contributors": [
-    "Grant Skinner <grant@gskinner.com> (https://github.com/gskinner)",
-    "Lanny McNie <lanny@gskinner.com> (https://github.com/lannymcnie)",
-    "Wes Gorgichuk <wes@gskinner.com> (https://github.com/wdamien)",
     "Patrick McGuckin <patrick@gskinner.com> (https://github.com/tehvgg)"
   ],
-  "main": "dist/createjs.cjs.js",
-  "jsnext:main": "dist/createjs.es6.js",
   "logo": "icon.png",
   "repository": {
     "type": "git",
-    "url": "https://github.com/CreateJS/CreateJS"
+    "url": "https://github.com/createjs/build.git"
   },
   "scripts": {
     "post-install": "npm dedupe",
-    "travis": "gulp test --NEXT --browser=Chrome_Travis && gulp lint",
-    "lint": "gulp lint",
     "test": "gulp test --NEXT --browser=Chrome",
     "test:headless": "gulp test --NEXT --browser=PhantomJS",
     "dev": "gulp dev --NEXT",
     "build": "gulp build",
     "build:next": "gulp build:next --NEXT",
-    "plugins": "gulp plugins",
-    "docs": "gulp docs",
-    "cdn": "gulp cdn",
-    "copy:builds": "TODO",
-    "copy:demos": "TODO"
+    "plugins": "gulp plugins"
   },
   "devDependencies": {
     "@babel/core": "^7.0.0-beta.31",
@@ -93,7 +78,6 @@
     "vinyl-buffer": "^1.0.0",
     "vinyl-source-stream": "^1.1.0",
     "yargs": "^10.0.3",
-    "yuidocjs": "^0.10.2"
   },
   "engine": "node >= 7.10.1",
   "dependencies": {}
