@@ -188,12 +188,19 @@ function bundle (options, type, minify = false) {
 
 	// uglify and beautify do not currently support ES6 (at least in a stable manner)
 	const isES6 = type === "es6";
+	// only development builds get sourcemaps
+	const useSourceMaps = options.sourcemap = !minify && isNodeEnv(DEVELOPMENT);
+	options.plugins.pop();
 
 	let b = rollup(options)
 		.on("bundle", bundle => buildCaches[filename] = bundle) // cache bundle for re-bundles triggered by watch
 		.pipe(source(filename))
-		.pipe(buffer())
-		.pipe(replace(/<%=\sversion\s%>/g, version)); // inject the build version into the bundle
+		.pipe(buffer());
+		if (useSourceMaps) {
+			// remove the args from sourcemaps.write() to make it an inlined map.
+			b = b.pipe(sourcemaps.init({ loadMaps: true }))
+				.pipe(sourcemaps.mapSources((sourcePath, file) => sourcePath.substring(3)));
+		}
 	if (!isES6) {
 		if (minify) {
 			b = b.pipe(uglify(config.uglifyMin));
@@ -201,15 +208,17 @@ function bundle (options, type, minify = false) {
 			// uglify strips comments, beautify re-indents and cleans up whitespace
 			b = b.pipe(uglify(config.uglifyNonMin))
 				.pipe(beautify(config.beautify));
-			// only development builds get sourcemaps
-			if (isNodeEnv(DEVELOPMENT)) {
-				// remove the args from sourcemaps.write() to make it an inlined map.
-				b = b.pipe(sourcemaps.init({ loadMaps: true }))
-					.pipe(sourcemaps.write(paths.sourcemaps));
+			if (useSourceMaps) {
+				b = b.pipe(sourcemaps.write(paths.sourcemaps, {
+					includeContent: false,
+					sourceRoot: '../src'
+				}));
 			}
 		}
 	}
-	return b.pipe(gulp.dest(paths.dist));
+	// inject the build version into the bundle
+	return b.pipe(replace(/<%=\sversion\s%>/g, version))
+		.pipe(gulp.dest(paths.dist));
 }
 
 // multi-entry reads main.js from each lib for a combined bundle.
