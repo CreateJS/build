@@ -189,8 +189,7 @@ function bundle (options, type, minify = false) {
 	// uglify and beautify do not currently support ES6 (at least in a stable manner)
 	const isES6 = type === "es6";
 	// only development builds get sourcemaps
-	const useSourceMaps = options.sourcemap = !minify && isNodeEnv(DEVELOPMENT);
-	options.plugins.pop();
+	const useSourceMaps = false; // options.sourcemap = !minify && isNodeEnv(DEVELOPMENT);
 
 	let b = rollup(options)
 		.on("bundle", bundle => buildCaches[filename] = bundle) // cache bundle for re-bundles triggered by watch
@@ -199,7 +198,13 @@ function bundle (options, type, minify = false) {
 		if (useSourceMaps) {
 			// remove the args from sourcemaps.write() to make it an inlined map.
 			b = b.pipe(sourcemaps.init({ loadMaps: true }))
-				.pipe(sourcemaps.mapSources((sourcePath, file) => sourcePath.substring(3)));
+				.pipe(sourcemaps.mapSources((sourcePath, file) => {
+					if (/\/(Event|EventDispatcher|Ticker)\.js$/.test(sourcePath)) {
+						return `../node_modules/createjs/src/${sourcePath.split('/src/')[1]}`;
+					} else {
+						return sourcePath.substring(3);
+					}
+				}));
 		}
 	if (!isES6) {
 		if (minify) {
