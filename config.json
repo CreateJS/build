@@ -39,7 +39,7 @@
 	"exportsExtend": "this.createjs || {}",
 
 	"rollupGlobals": {
-		"tweenjs/src/Tween": "this.createjs.Tween",
-		"tweenjs/src/Timeline": "this.createjs.Timeline"
+		"tweenjs/src/Tween": "this.createjs && this.createjs.Tween",
+		"tweenjs/src/Timeline": "this.createjs && this.createjs.Timeline"
 	}
 }
