@@ -158,6 +158,9 @@ function bundle (options, type, minify = false) {
 	options.banner = gutil.template(getFile(paths[minify ? "LICENSE" : "BANNER"]), { name: nameToCamelCase(activeLib), file: "" });
 	// exports are named
 	options.exports = 'named';
+	// using custom rollup
+	options.rollup = require('rollup');
+
 	if (isCombined) {
 		// force-binding must go before node-resolve
 		options.plugins.push(multiEntry(), forceBinding(config.forceBinding), nodeResolve());
@@ -189,7 +192,7 @@ function bundle (options, type, minify = false) {
 	// uglify and beautify do not currently support ES6 (at least in a stable manner)
 	const isES6 = type === "es6";
 	// only development builds get sourcemaps
-	const useSourceMaps = false; // options.sourcemap = !minify && isNodeEnv(DEVELOPMENT);
+	const useSourceMaps = options.sourcemap = false; // !minify && isNodeEnv(DEVELOPMENT);
 
 	let b = rollup(options)
 		.on("bundle", bundle => buildCaches[filename] = bundle) // cache bundle for re-bundles triggered by watch
@@ -214,10 +217,10 @@ function bundle (options, type, minify = false) {
 			b = b.pipe(uglify(config.uglifyNonMin))
 				.pipe(beautify(config.beautify));
 			if (useSourceMaps) {
-				b = b.pipe(sourcemaps.write(paths.sourcemaps, {
+				b = b.pipe(sourcemaps.write(paths.sourcemaps)); /*, {
 					includeContent: false,
 					sourceRoot: '../src'
-				}));
+				}));*/
 			}
 		}
 	}
