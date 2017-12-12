@@ -51,6 +51,11 @@ function log (color, ...text) {
 	gutil.log(gutil.colors[color](...text));
 }
 
+function watch (sourceFiles, gulpTasks) {
+	gulp.watch(sourceFiles, gulpTasks)
+		.on("error", () => {});
+}
+
 // return the string contents of a file, or undefined if there was an error reading the file
 function getFile (path) {
 	try {
@@ -153,6 +158,9 @@ function bundle (options, type, minify = false) {
 	options.banner = gutil.template(getFile(paths[minify ? "LICENSE" : "BANNER"]), { name: nameToCamelCase(activeLib), file: "" });
 	// exports are named
 	options.exports = 'named';
+	// using custom rollup
+	options.rollup = require('rollup');
+
 	if (isCombined) {
 		// force-binding must go before node-resolve
 		options.plugins.push(multiEntry(), forceBinding(config.forceBinding), nodeResolve());
@@ -183,12 +191,24 @@ function bundle (options, type, minify = false) {
 
 	// uglify and beautify do not currently support ES6 (at least in a stable manner)
 	const isES6 = type === "es6";
+	// only development builds get sourcemaps
+	const useSourceMaps = options.sourcemap = false; // !minify && isNodeEnv(DEVELOPMENT);
 
 	let b = rollup(options)
 		.on("bundle", bundle => buildCaches[filename] = bundle) // cache bundle for re-bundles triggered by watch
 		.pipe(source(filename))
-		.pipe(buffer())
-		.pipe(replace(/<%=\sversion\s%>/g, version)); // inject the build version into the bundle
+		.pipe(buffer());
+		if (useSourceMaps) {
+			// remove the args from sourcemaps.write() to make it an inlined map.
+			b = b.pipe(sourcemaps.init({ loadMaps: true }))
+				.pipe(sourcemaps.mapSources((sourcePath, file) => {
+					if (/\/(Event|EventDispatcher|Ticker)\.js$/.test(sourcePath)) {
+						return `../node_modules/createjs/src/${sourcePath.split('/src/')[1]}`;
+					} else {
+						return sourcePath.substring(3);
+					}
+				}));
+		}
 	if (!isES6) {
 		if (minify) {
 			b = b.pipe(uglify(config.uglifyMin));
@@ -196,15 +216,17 @@ function bundle (options, type, minify = false) {
 			// uglify strips comments, beautify re-indents and cleans up whitespace
 			b = b.pipe(uglify(config.uglifyNonMin))
 				.pipe(beautify(config.beautify));
-			// only development builds get sourcemaps
-			if (isNodeEnv(DEVELOPMENT)) {
-				// remove the args from sourcemaps.write() to make it an inlined map.
-				b = b.pipe(sourcemaps.init({ loadMaps: true }))
-					.pipe(sourcemaps.write(paths.sourcemaps));
+			if (useSourceMaps) {
+				b = b.pipe(sourcemaps.write(paths.sourcemaps)); /*, {
+					includeContent: false,
+					sourceRoot: '../src'
+				}));*/
 			}
 		}
 	}
-	return b.pipe(gulp.dest(paths.dist));
+	// inject the build version into the bundle
+	return b.pipe(replace(/<%=\sversion\s%>/g, version))
+		.pipe(gulp.dest(paths.dist));
 }
 
 // multi-entry reads main.js from each lib for a combined bundle.
@@ -341,7 +363,8 @@ gulp.task("clean:docs", function () {
 
 gulp.task("sass:docs", function () {
 	return gulp.src(paths.docs_sass)
-		.pipe(sass({ outputStyle: "compressed" }).on("error", sass.logError))
+		.pipe(sass({ outputStyle: "compressed" })
+		.on("error", sass.logError))
 		.pipe(gulp.dest(paths.docs_css));
 });
 
@@ -373,7 +396,8 @@ gulp.task("clean:cdn", function () {
 gulp.task("sass:cdn", function () {
 	let cdn = paths.cdn;
 	return gulp.src(`${cdn}styles/styles.scss`)
-		.pipe(sass({ outputStyle: "compressed" }).on("error", sass.logError))
+		.pipe(sass({ outputStyle: "compressed" })
+		.on("error", sass.logError))
 		.pipe(cleanCSS({ keepSpecialComments: 0 }))
 		.pipe(gulp.dest(`${cdn}build`));
 });
@@ -431,9 +455,9 @@ gulp.task("reload", function (done) {
 
 // only rebundle the global module during dev since that's what the examples use
 gulp.task("watch:dev", function () {
-	gulp.watch(paths.sourceFiles, gulp.series("bundle:global", "reload"));
-	gulp.watch(paths.plugins, gulp.series("plugins", "reload"));
-	gulp.watch([paths.examples, paths.extras], gulp.series("reload"));
+	watch(paths.sourceFiles, gulp.series("bundle:global", "reload"));
+	watch(paths.plugins, gulp.series("plugins", "reload"));
+	watch([paths.examples, paths.extras], gulp.series("reload"));
 });
 
 gulp.task("dev", gulp.series(
@@ -474,8 +498,8 @@ gulp.task("karma", function (done) {
 
 // only rebundle global since that's what the tests load
 gulp.task("watch:test", function () {
-	gulp.watch(paths.sourceFiles, gulp.series("bundle:global"));
-	gulp.watch(paths.plugins, gulp.series("plugins"));
+	watch(paths.sourceFiles, gulp.series("bundle:global"));
+	watch(paths.plugins, gulp.series("plugins"));
 });
 
 gulp.task("test", gulp.series(
