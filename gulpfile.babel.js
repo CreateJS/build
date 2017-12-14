@@ -79,7 +79,7 @@ const cwd = process.cwd();
 // figure out of we're calling from a lib or directly
 const relative = /node_modules/.test(cwd) ? "../../" : "./";
 // get the relative package and the universal config (overwritten by the local config)
-const pkg = JSON.parse(getFile(`${relative}package.json`));
+const pkg = readJSON(`${relative}package.json`);
 const config = defaults(readJSON("./config.local.json"), readJSON("./config.json"));
 // the order of the libs here is also the order that they will be bundled
 const libs = ["tween", "easel", "sound", "preload"];
@@ -381,61 +381,6 @@ gulp.task("zip:docs", function () {
 });
 
 gulp.task("docs", gulp.series("clean:docs", "sass:docs", "yuidoc", "zip:docs"));
-
-/********************************************************************
-
-  CDN
-
-********************************************************************/
-
-// force is required to bypass the security warnings about modifying dirs outside the cwd
-gulp.task("clean:cdn", function () {
-	return del([`${paths.cdn}build/*`], { force: true });
-});
-
-gulp.task("sass:cdn", function () {
-	let cdn = paths.cdn;
-	return gulp.src(`${cdn}styles/styles.scss`)
-		.pipe(sass({ outputStyle: "compressed" })
-		.on("error", sass.logError))
-		.pipe(cleanCSS({ keepSpecialComments: 0 }))
-		.pipe(gulp.dest(`${cdn}build`));
-});
-
-gulp.task("render:cdn", function () {
-	let cdn = paths.cdn;
-	return gulp.src(`${cdn}index.template.html`)
-		.pipe(inlineCSS())
-		.pipe(rename("index.html"))
-		.pipe(gulp.dest(`${cdn}build`));
-});
-
-// get the latest stable builds and copy them to cdn/build
-gulp.task("copy:cdn", function () {
-	let cdn = paths.cdn;
-
-	let builds = gulp.src([...(libs.map(lib => `${getLibPath(lib)}/dist/*${version}*`)), `dist/*${version}*`])
-		.pipe(gulp.dest(`${cdn}build/builds/`));
-	let favicons = gulp.src(`${cdn}favicons/*`, { base: cdn })
-		.pipe(gulp.dest(`${cdn}build/`));
-
-	return merge(builds, favicons);
-});
-
-gulp.task("zip:cdn", function () {
-	let path = `${paths.cdn}build/`;
-	return gulp.src(`${path}**/!(*.css|*.zip)`)
-		.pipe(zip(`cdn_createjs-${version}.zip`))
-		.pipe(gulp.dest(path));
-});
-
-gulp.task("cdn", gulp.series(
-	"clean:cdn",
-	"sass:cdn",
-	"render:cdn",
-	"copy:cdn",
-	"zip:cdn"
-));
 
 /********************************************************************
 
