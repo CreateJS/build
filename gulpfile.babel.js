@@ -1,186 +1,120 @@
+// gulp
 import gulp from "gulp";
 import uglify from "gulp-uglify";
 import beautify from "gulp-beautify";
 import sourcemaps from "gulp-sourcemaps";
 import sass from "gulp-sass";
 import cleanCSS from "gulp-clean-css";
-import inlineCSS from "gulp-inline-source";
 import replace from "gulp-replace";
 import eslint from "gulp-eslint";
 import gutil from "gulp-util";
 import shell from "gulp-shell";
 import zip from "gulp-zip";
 import rename from "gulp-rename";
-
+// rollup
 import rollup from "rollup-stream";
 import babel from "rollup-plugin-babel";
 import multiEntry from "rollup-plugin-multi-entry";
 import nodeResolve from "rollup-plugin-node-resolve";
 import forceBinding from "rollup-plugin-force-binding";
 import exportsExtend from "rollup-plugin-exports-extend";
-
+// vinyl
 import source from "vinyl-source-stream";
 import buffer from "vinyl-buffer";
-
+// utils
+import * as utils from "./tasks/utils";
+// other
 import merge from "merge-stream";
-import defaults from "lodash.defaults";
 import del from "del";
 import browserSync from "browser-sync";
-import karma from "karma";
-import yargs from "yargs";
 import fs from "fs";
 
-/********************************************************************
+//////////////////////////////////////////////////////////////
+// CONSTANTS
+//////////////////////////////////////////////////////////////
 
-  CONSTANTS & UTILITIES
-
-********************************************************************/
-
-function setNodeEnv (env) {
-	return function setNodeEnv(done) {
-		process.env.NODE_ENV = env;
-		done();
-	};
-}
-
-function isNodeEnv (env) {
-	return process.env.NODE_ENV === env;
-}
-
-function log (color, ...text) {
-	gutil.log(gutil.colors[color](...text));
-}
-
-function watch (sourceFiles, gulpTasks) {
-	gulp.watch(sourceFiles, gulpTasks)
-		.on("error", () => {});
-}
-
-// return the string contents of a file, or undefined if there was an error reading the file
-function getFile (path) {
-	try {
-		return fs.readFileSync(path, { encoding: "utf-8" });
-	} catch (error) {
-		log("yellow", `File '${path}' was not found. Returning 'undefined'.`);
-		return undefined;
-	}
-}
-
-// return JSON read from a file
-function readJSON (path) {
-	let file = getFile(path);
-	return file ? JSON.parse(file) : {};
-}
-
-const PRODUCTION = "production";
-const DEVELOPMENT = "development";
-// cwd will always be the createjs dir
-const cwd = process.cwd();
-// figure out of we're calling from a lib or directly
-const relative = /node_modules/.test(cwd) ? "../../" : "./";
-// get the relative package and the universal config (overwritten by the local config)
-const pkg = readJSON(`${relative}package.json`);
-const config = defaults(readJSON("./config.local.json"), readJSON("./config.json"));
-// the order of the libs here is also the order that they will be bundled
-const libs = ["tween", "easel", "sound", "preload"];
+// the build repo lives at /node_modules/@createjs/build/ inside the lib repos
+const base = "../../../";
+// get the relative package and the universal config
+const pkg = utils.readJSON(`${base}package.json`);
+const config = utils.readJSON("./config.json");
+// the order of the libs here is also the order that they will be bundled in combined
+const libs = ["core", "tween", "easel", "sound", "preload"];
+// the lib that is using this process (read as @createjs/(lib)js)
+const lib = pkg.name.split('/')[1];
 // quickrefs
-const activeLib = pkg.name;
-const version = pkg.version;
-const isCombined = activeLib === "createjs";
-const isNext = yargs.argv.hasOwnProperty("NEXT");
 const paths = {
-	cdn: "./cdn/",
+	// assets
 	LICENSE: "./assets/LICENSE",
 	BANNER: "./assets/BANNER",
-	docs_sass: "./docsTheme/assets/scss/main.scss",
-	docs_css: "./docsTheme/assets/css/",
-	dist: `${relative}dist/`,
-	docs: `${relative}docs/`,
-	entry: `${relative}src/main.js`,
-	plugins: `${relative}src/plugins/*.js`,
-	serve: relative,
-	examples: `${relative}examples/**/*`,
-	extras: `${relative}extras/**/*`,
-	sourceFiles: `${relative}src/**/*.js`,
-	sourcemaps: ".",
-	testConfig: `${cwd}/${relative}tests/karma.conf.js`,
+	// generated folders
+	dist: `${base}dist/`,
+	docs: `${base}docs/`,
+	// bundle entry
+	entry: `${base}src/main.js`,
+	plugins: `${base}src/plugins/*.js`,
+	// browser-sync base
+	serve: base,
+	// extra folders
+	examples: `${base}examples/**/*`,
+	extras: `${base}extras/**/*`,
+	tutorials: `${base}tutorials/**/*`
+	// glob for js watch
+	sourceFiles: `${base}src/**/*.js`,
+	// sourcemap location, relative to js file not repo
+	sourcemaps: "./maps"
 };
+// browser-sync instance for dev
 const browser = browserSync.create();
 // stores bundle caches for rebundling with rollup
 const buildCaches = {};
-
 // overwrite the comments strings in the config with functions
-config.uglifyMin.output.comments = function (node, comment) {
-	// preserve the injected license header
-	if (comment.line === 1) { return true; }
-	// strip everything else
-	return false;
-};
-config.uglifyNonMin.output.comments = function (node, comment) {
-	// preserve the injected license header
-	if (comment.line === 1) { return true; }
-	// strip documentation blocks
-	return !(/(@uglify|@license|copyright)/i.test(comment.value));
-};
+// preserve the injected license header, strip everything else
+config.uglify.min.output.comments = (node, comment) => comment.line === 1;
+// preserve the injected license header, strip documentation blocks
+config.uglify.nonMin.output.comments = (node, comment) => comment.line === 1 || !(/@(uglify|license|copyright)/i.test(comment.value));
 
-// return the lib path from the config
-function getLibPath (lib) {
-	return config[`${lib}_path`];
-}
+//////////////////////////////////////////////////////////////
+// BUNDLING
+//////////////////////////////////////////////////////////////
 
-// returns a string of format activeLib(-NEXT)(.type)(.min).js
-// global modules have no type
-function generateBuildFilename (type, minify) {
-	return `${nameToLib(activeLib) + (isNext ? "-NEXT" : "") + (type.length > 0 ? `.${type}` : "") + (minify ? ".min" : "")}.js`;
-}
-
-// makes "easel" or "easeljs" look like "EaselJS"
-function nameToCamelCase (lib) {
-	return lib[0].toUpperCase() + lib.substring(1, /js$/.test(lib) ? lib.length - 2 : undefined) + "JS";
-}
-
-// makes "EaselJS" or "easeljs" look like "easel"
-function nameToLib (lib) {
-	return lib.toLowerCase().replace(/js$/, "");
-}
-
-/********************************************************************
-
-  BUNDLING
-
-********************************************************************/
-
-function bundle (options, type, minify = false) {
-	const filename = generateBuildFilename(type, minify);
+function bundle (format) {
+	const options = { format };
+	if (format === "iife") { options.name = "createjs"; }
+	const minify = utils.env.isProd;
+	const filename = utils.generateBuildFilename(lib, format === "iife" ? "" : format, minify);
+	// plugins are added below as-needed
+	options.plugins = [];
 	// rollup is faster if we pass in the previous bundle on a re-bundle
 	options.cache = buildCaches[filename];
 	// min files are prepended with LICENSE, non-min with BANNER
-	options.banner = gutil.template(getFile(paths[minify ? "LICENSE" : "BANNER"]), { name: nameToCamelCase(activeLib), file: "" });
-	// exports are named
-	options.exports = 'named';
+	options.banner = gutil.template(
+		utils.getFile(paths[minify ? "LICENSE" : "BANNER"]),
+		{ name: utils.nameToCamelCase(lib), file: "" }
+	);
 	// using custom rollup
 	options.rollup = require('rollup');
 
-	if (isCombined) {
-		// force-binding must go before node-resolve
-		options.plugins.push(multiEntry(), forceBinding(config.forceBinding), nodeResolve());
-		// combined bundles import all dependencies
-		options.external = function external() { return false; };
-		// multi-entry rollup plugin will handle the src/main paths for all libs
-		options.input = libs.map(lib => {
-			let path = `${getLibPath(lib)}/${paths.entry.replace(relative, "")}`;
-			try { fs.accessSync(path); } catch (error) { log("yellow", `Local ${nameToCamelCase(lib)} not found, it will not be in the bundle. Please verify your config.local.json path.`); }
-			return path;
-		});
+	if (utils.env.isCombined) {
+		// force-binding must go before node-resolve since it prevents duplicates
+		options.plugins.push(
+			multiEntry(),
+			forceBinding(config.rollup.forceBinding),
+			nodeResolve()
+		);
+		// combined bundle imports all dependencies
+		options.external = () => false;
+		// combined builds occur in the @createjs/cdn repo, which has a dependency for all of the libs.
+		options.input = libs.map(lib => `${base}/node_modules/@createjs/${lib}js/src/main.js`);
 	} else {
 		// point the top level export to an existing createjs
-		options.plugins.push(nodeResolve(), exportsExtend(config.exportsExtend));
+		options.plugins.push(nodeResolve(), exportsExtend(config.rollup.exportsExtend));
 		// cross-library dependencies must remain externalized for individual bundles
-		const externalDependencyRegex = new RegExp(`^(${Object.keys(options.globals = config.rollupGlobals).map(g => g.replace('/', '\/')).join('|')})$`);
-		options.external = function external(id) {
+		const externalDependencyRegex = new RegExp(`^(${Object.keys(options.globals = config.rollup.globals).map(g => g.replace('/', '\/')).join('|')})$`);
+		options.external = id => {
 			let match = id.match(externalDependencyRegex);
 			if (match !== null) {
-				log("green", `Externalizing cross-library dependency for ${match[1]}`);
+				utils.log("green", `Externalizing cross-library dependency for ${match[1]}`);
 				return true;
 			}
 			return false;
@@ -189,39 +123,36 @@ function bundle (options, type, minify = false) {
 		options.input = paths.entry;
 	}
 
-	// uglify and beautify do not currently support ES6 (at least in a stable manner)
-	const isES6 = type === "es6";
+	// babel runs last
+	if (options.format !== "es6") {
+		options.plugins.push(babel(config.babel));
+	}
+
 	// only development builds get sourcemaps
-	const useSourceMaps = options.sourcemap = false; // !minify && isNodeEnv(DEVELOPMENT);
+	options.sourcemap = utils.env.isDev;
 
 	let b = rollup(options)
 		.on("bundle", bundle => buildCaches[filename] = bundle) // cache bundle for re-bundles triggered by watch
 		.pipe(source(filename))
 		.pipe(buffer());
-		if (useSourceMaps) {
-			// remove the args from sourcemaps.write() to make it an inlined map.
-			b = b.pipe(sourcemaps.init({ loadMaps: true }))
-				.pipe(sourcemaps.mapSources((sourcePath, file) => {
-					if (/\/(Event|EventDispatcher|Ticker)\.js$/.test(sourcePath)) {
-						return `../node_modules/createjs/src/${sourcePath.split('/src/')[1]}`;
-					} else {
-						return sourcePath.substring(3);
-					}
-				}));
-		}
-	if (!isES6) {
-		if (minify) {
-			b = b.pipe(uglify(config.uglifyMin));
-		} else {
-			// uglify strips comments, beautify re-indents and cleans up whitespace
-			b = b.pipe(uglify(config.uglifyNonMin))
-				.pipe(beautify(config.beautify));
-			if (useSourceMaps) {
-				b = b.pipe(sourcemaps.write(paths.sourcemaps)); /*, {
-					includeContent: false,
-					sourceRoot: '../src'
-				}));*/
-			}
+	if (options.sourcemap) {
+		b = b.pipe(sourcemaps.init({ loadMaps: true }))
+			.pipe(sourcemaps.mapSources((sourcePath, file) => {
+				if (/\/(Event|EventDispatcher|Ticker)\.js$/.test(sourcePath)) {
+					return `../node_modules/createjs/src/${sourcePath.split('/src/')[1]}`;
+				} else {
+					return sourcePath.substring(3);
+				}
+			}));
+	}
+	if (minify) {
+		b = b.pipe(uglify(config.uglify.min));
+	} else {
+		// uglify strips comments, beautify re-indents and cleans up whitespace
+		b = b.pipe(uglify(config.uglify.nonMin))
+			.pipe(beautify(config.beautify));
+		if (options.sourcemap) {
+			b = b.pipe(sourcemaps.write(paths.sourcemaps));
 		}
 	}
 	// inject the build version into the bundle
@@ -232,32 +163,24 @@ function bundle (options, type, minify = false) {
 // multi-entry reads main.js from each lib for a combined bundle.
 // node-resolve grabs the shared createjs files and compiles/bundles them with the rest of the lib
 gulp.task("bundle:es6", function () {
-	return bundle({
-		format: "es",
-		plugins: []
-	}, "es6");
+	return bundle("es" );
 });
 
 gulp.task("bundle:cjs", function () {
-	return bundle({
-		format: "cjs",
-		plugins: [babel(config.babel)]
-	}, "cjs");
+	return bundle("cjs");
 });
 
 gulp.task("bundle:global", function () {
 	return bundle({
 		format: "iife",
-		name: "createjs",
-		plugins: [babel(config.babel)]
+		name: "createjs"
 	}, "");
 });
 
 gulp.task("bundle:global:min", function () {
 	return bundle({
 		format: "iife",
-		name: "createjs",
-		plugins: [babel(config.babel)]
+		name: "createjs"
 	}, "", true);
 });
 
@@ -349,41 +272,6 @@ gulp.task("build:next", gulp.series(
 
 /********************************************************************
 
-  DOCS
-
-********************************************************************/
-
-// TODO: Library specific styles (currently hardcoded to Easel)
-// TODO: Versioned doc builds.
-
-// force is required to bypass the security warnings about modifying dirs outside the cwd
-gulp.task("clean:docs", function () {
-	return del([`${paths.docs}**`], { force: true });
-});
-
-gulp.task("sass:docs", function () {
-	return gulp.src(paths.docs_sass)
-		.pipe(sass({ outputStyle: "compressed" })
-		.on("error", sass.logError))
-		.pipe(gulp.dest(paths.docs_css));
-});
-
-// there's no good and/or recent gulp wrapper for yuidoc available, so we'll execute a shell task
-// each lib has a yuidoc.json in its root
-gulp.task("yuidoc", shell.task(`cd ${relative} && yuidoc ./node_modules/createjs/src ./src`));
-
-// zip everything in the docs folder (except any existing archives) and write to the folder
-gulp.task("zip:docs", function () {
-	let path = paths.docs;
-	return gulp.src(`${path}**/!(*.zip)`)
-		.pipe(zip(`docs_${activeLib}-${isNext ? "NEXT" : version}.zip`))
-		.pipe(gulp.dest(path));
-});
-
-gulp.task("docs", gulp.series("clean:docs", "sass:docs", "yuidoc", "zip:docs"));
-
-/********************************************************************
-
   DEV
 
 ********************************************************************/
@@ -415,48 +303,6 @@ gulp.task("dev", gulp.series(
 	gulp.parallel(
 		"serve",
 		"watch:dev"
-	)
-));
-
-/********************************************************************
-
-  TESTS
-
-********************************************************************/
-
-gulp.task("karma", function (done) {
-	let browser = yargs.argv.browser;
-	let headless = browser === "PhantomJS";
-	let travis = browser === "Chrome_Travis";
-	let reporters = ["mocha"];
-	if (!headless && !travis) { reporters.push("kjhtml"); }
-	// wrap done() to fix occasional bug that occurs when trying to close the server.
-	let end = function () { done(); };
-	let server = new karma.Server({
-		configFile: paths.testConfig,
-		browsers: [browser],
-		singleRun: travis,
-		reporters
-	}, end);
-	server.start();
-});
-
-// only rebundle global since that's what the tests load
-gulp.task("watch:test", function () {
-	watch(paths.sourceFiles, gulp.series("bundle:global"));
-	watch(paths.plugins, gulp.series("plugins"));
-});
-
-gulp.task("test", gulp.series(
-	setNodeEnv(DEVELOPMENT),
-	"clean:dist",
-	gulp.parallel(
-		"bundle:global",
-		"plugins"
-	),
-	gulp.parallel(
-		"karma",
-		"watch:test"
 	)
 ));
 
