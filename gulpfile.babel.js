@@ -96,10 +96,12 @@ function bundle (format) {
 	options.rollup = require('rollup');
 
 	if (utils.env.isCombined) {
-		// force-binding must go before node-resolve since it prevents duplicates
 		options.plugins.push(
+			// multi-entry reads main.js from each lib for a combined bundle.
 			multiEntry(),
+			// force-binding must go before node-resolve since it prevents duplicates
 			forceBinding(config.rollup.forceBinding),
+			// node-resolve grabs the shared createjs files and compiles/bundles them with the rest of the lib
 			nodeResolve()
 		);
 		// combined bundle imports all dependencies
@@ -157,11 +159,9 @@ function bundle (format) {
 	}
 	// inject the build version into the bundle
 	return b.pipe(replace(/<%=\sversion\s%>/g, version))
-		.pipe(gulp.dest(paths.dist));
+		.pipe(gulp.dest(`${paths.dist + version}/`));
 }
 
-// multi-entry reads main.js from each lib for a combined bundle.
-// node-resolve grabs the shared createjs files and compiles/bundles them with the rest of the lib
 gulp.task("bundle:es6", function () {
 	return bundle("es" );
 });

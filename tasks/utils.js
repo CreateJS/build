@@ -49,6 +49,7 @@ export function nameToLib (lib) {
 export const env = {
 	DEV: 'development',
 	PROD: 'production',
+	flags: gutil.env,
 	get isDev () { return process.env.NODE_ENV === this.DEV; },
 	get isProd () { return process.env.NODE_ENV === this.PROD; },
 	get isCombined () { return process.env.hasOwnProperty("COMBINED"); }
