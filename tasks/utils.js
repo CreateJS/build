@@ -1,4 +1,5 @@
-import { extname } from 'path';
+import gulp from "gulp";
+import gutil from "gulp-util";
 
 export function log (color, ...text) {
 	gutil.log(gutil.colors[color](...text));
@@ -12,9 +13,7 @@ export function watch (sourceFiles, gulpTasks) {
 // return the string contents of a file, or undefined if there was an error reading the file
 export function getFile (path) {
 	try {
-		return extname(path) === ".json"
-			? require(path)
-			: fs.readFileSync(path, { encoding: "utf-8" });
+		return fs.readFileSync(path, { encoding: "utf-8" });
 	} catch (error) {
 		log("yellow", `File '${path}' was not found. Returning 'undefined'.`);
 		return undefined;

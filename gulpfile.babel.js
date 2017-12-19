@@ -92,7 +92,7 @@ function bundle (format) {
 		utils.getFile(paths[minify ? "LICENSE" : "BANNER"]),
 		{ name: utils.nameToCamelCase(lib), file: "" }
 	);
-	// using custom rollup
+	// point to latest rollup so we're not depending on rollup-stream's updates
 	options.rollup = require('rollup');
 
 	if (utils.env.isCombined) {
