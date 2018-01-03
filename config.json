@@ -11,11 +11,11 @@
 			}
 		},
 		"nonMin": {
+			"mangle": false,
+			"compress": false,
 			"output": {
 				"comments": "function set in gulpfile"
-			},
-			"mangle": false,
-			"compress": false
+			}
 		}
 	},
 

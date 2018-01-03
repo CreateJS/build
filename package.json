@@ -21,69 +21,29 @@
     "type": "git",
     "url": "https://github.com/createjs/build.git"
   },
-  "scripts": {
-    "lint": "cross-env NODE_ENV=development gulp lint",
-    "test": "cross-env NODE_ENV=development jest",
-    "dev": "cross-env NODE_ENV=development gulp dev",
-    "build:next": "cross-env NODE_ENV=development gulp build",
-    "build:plugins": "cross-env NODE_ENV=development gulp plugins",
-    "build:dist": "cross-env NODE_ENV=production gulp build"
-  },
-  "jest": {
-    "testMatch": [
-      "../../../tests/spec/**/*.js"
-    ],
-    "setupFiles": [
-      "./tests/setup.js",
-      "../../../tests/setup.js"
-    ],
-    "collectCoverage": true,
-    "collectCoverageFrom": [
-      "../../../src/**/*.{js,jsx}"
-    ],
-    "coverageDirectory": "../../../tests/coverage/",
-    "coveragePathIgnorePatterns": [
-      "/node_modules/",
-      "/tests/"
-    ],
-    "coverageReporters": [
-      "html",
-      "text"
-    ],
-    "notify": true,
-    "verbose": true
-  },
   "devDependencies": {
     "babel-core": "^6.26.0",
-    "babel-jest": "^21.2.0",
     "babel-plugin-external-helpers": "^6.22.0",
     "babel-preset-env": "^1.6.1",
     "babel-register": "^6.26.0",
-    "benchmark": "^2.1.1",
-    "browser-sync": "^2.15.0",
-    "cross-env": "^5.1.1",
+    "browser-sync": "^2.19.0",
     "del": "^3.0.0",
     "gulp": "github:gulpjs/gulp#4.0",
-    "gulp-beautify": "^2.0.0",
-    "gulp-clean-css": "^3.9.0",
+    "gulp-beautify": "^2.0.1",
     "gulp-eslint": "^4.0.0",
-    "gulp-rename": "^1.2.2",
     "gulp-replace": "^0.6.1",
-    "gulp-sass": "^3.1.0",
     "gulp-sourcemaps": "2.6.x",
-    "gulp-streamify": "^1.0.2",
     "gulp-uglify": "^3.0.0",
-    "gulp-util": "^3.0.7",
-    "gulp-zip": "^4.0.0",
-    "jest": "^21.2.1",
-    "merge-stream": "^1.0.0",
-    "rollup": "github:tehvgg/rollup",
-    "rollup-plugin-babel": "^3.0.2",
-    "rollup-plugin-exports-extend": "^1.1.1",
+    "gulp-util": "^3.0.8",
+    "merge-stream": "^1.0.1",
+    "rollup": "^0.52.3",
+    "rollup-plugin-babel": "^3.0.3",
+    "rollup-plugin-exports-extend": "^1.1.2",
     "rollup-plugin-force-binding": "^1.0.6",
-    "rollup-plugin-multi-entry": "^2.0.1",
+    "rollup-plugin-multi-entry": "^2.0.2",
     "rollup-plugin-node-resolve": "^3.0.0",
-    "rollup-stream": "^1.12.0",
+    "rollup-stream": "^1.24.1",
+    "uglify-es": "^3.3.4",
     "vinyl-buffer": "^1.0.0",
     "vinyl-source-stream": "^1.1.0"
   },
