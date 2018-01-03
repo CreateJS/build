@@ -1,14 +1,26 @@
-buildAssets/
-docsTheme/
-cdn/
+# JetBrains
+.idea/
 
-CHANGELOG
-config.json
-config.local.json
-gulpfile.babel.js
+# Sublime Text
+*.sublime-project
+*.sublime-workspace
+
+# Atom
+.atom/
+
+# VSCode
+.vscode/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Other
+*.lock
+*.log
+
+# Project
+.editorconfig
+CHANGELOG.md
+CONTRIBUTING.md
 icon.png
-bower.json
-
-dist/*.js
-!dist/createjs.cjs.js
-!dist/createjs.es6.js
