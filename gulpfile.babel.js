@@ -30,14 +30,14 @@ import path from "path";
 //////////////////////////////////////////////////////////////
 
 // the build repo lives at /node_modules/@createjs/build/ inside the lib repos
-const base = `${path.resolve(process.cwd(), '../../../')}/`;
+const base = `${path.resolve(process.cwd(), "../../../")}/`;
 // get the relative package and the universal config
 const pkg = require(`${base}package.json`);
 const config = require("./config.json");
 // the order of the libs here is also the order that they will be bundled in combined
 const libs = ["core", "tween", "easel", "sound", "preload"];
 // the lib that is using this process, read as @createjs/(lib)
-const lib = pkg.name.split('/')[1];
+const lib = pkg.name.split("/")[1];
 // quickrefs
 const paths = {
 	// assets
@@ -69,6 +69,13 @@ const paths = {
 const buildCaches = {};
 // configure gulp-uglify to use uglify-es for ES2015+ support
 const uglify = uglifyComposer(uglifyES, console);
+// default the build formats
+const formats = (utils.env.flags.format || "module,common,global").split(",");
+const formatMap = {
+	global: "iife"
+	module: "es"
+	common: "cjs"
+};
 
 // overwrite the comments strings in the config with functions
 // preserve the injected license header, strip everything else
@@ -77,10 +84,11 @@ config.uglify.min.output.comments = (node, comment) => comment.line === 1;
 config.uglify.nonMin.output.comments = (node, comment) => comment.line === 1 || !(/@(uglify|license|copyright)/i.test(comment.value));
 
 function bundle (format) {
-	const minify = utils.env.isProduction && format === "iife";
+	// only minify in prod and for global bundles
+	const minify = utils.env.isProduction && format === "global";
 	const filename = utils.generateBuildFilename(lib, format, minify);
 	const options = {
-		format,
+		format: formatMap[format],
 		name: "createjs",
 		// plugins are added below as-needed
 		plugins: [],
@@ -94,7 +102,7 @@ function bundle (format) {
 		// only dev builds get sourcemaps
 		sourcemap: !minify,
 		// point to latest rollup so we're not depending on rollup-stream's updates
-		rollup: require('rollup')
+		rollup: require("rollup")
 	};
 
 	if (utils.env.isCombined) {
@@ -116,7 +124,7 @@ function bundle (format) {
 		);
 		// cross-library dependencies must remain externalized for individual bundles
 		options.globals = config.rollup.globals;
-		const externalDependencyRegex = new RegExp(`^(${Object.keys(options.globals).map(g => g.replace('/', '\/')).join('|')})$`);
+		const externalDependencyRegex = new RegExp(`^(${Object.keys(options.globals).map(g => g.replace("/", "\/")).join("|")})$`);
 		options.external = id => {
 			const match = id.match(externalDependencyRegex);
 			if (match !== null) {
@@ -129,7 +137,7 @@ function bundle (format) {
 	}
 
 	// babel runs last
-	if (format !== "es") {
+	if (format !== "module") {
 		options.plugins.push(babel(config.babel));
 	}
 
@@ -145,7 +153,7 @@ function bundle (format) {
 			.pipe(sourcemaps.init({ loadMaps: true }))
 			.pipe(sourcemaps.mapSources(filepath =>
 				/\/(Event|EventDispatcher|Ticker)\.js$/.test(filepath)
-					? `${base}/node_modules/@createjs/core/src/${filepath.split('/src/')[1]}`
+					? `${base}/node_modules/@createjs/core/src/${filepath.split("/src/")[1]}`
 					: filepath.substring(3)
 			))
 			.pipe(uglify(config.uglify.nonMin))
@@ -158,19 +166,20 @@ function bundle (format) {
 		.pipe(gulp.dest(`${paths.dist + pkg.version}/`));
 }
 
-gulp.task("bundle:module", () => bundle("es"));
-gulp.task("bundle:common", () => bundle("cjs"));
-gulp.task("bundle:global", () => bundle("iife"));
+gulp.task("bundle:module", () => bundle("module"));
+gulp.task("bundle:common", () => bundle("common"));
+gulp.task("bundle:global", () => bundle("global"));
 
 function compilePlugin (format, entry) {
 	const input = paths.plugins + entry;
 	const options = {
-		format, input,
+		input,
+		format: formatMap[format],
 		name: "createjs",
 		plugins: [ babel(config.babel) ],
 		banner: gutil.template(
 			utils.readFile(paths.BANNER),
-			{ name: utils.generateBuildFilename(path.basename(entry, '.js'), format), file: "" }
+			{ name: utils.generateBuildFilename(path.basename(entry, ".js"), format), file: "" }
 		)
 	};
 	return rollup(options)
@@ -183,12 +192,14 @@ function compilePlugin (format, entry) {
 gulp.task("plugins", cb => {
 	try {
 		// readdirSync() will throw if the dir isn't found
-		const plugins = fs.readdirSync(paths.plugins);
-		return merge.apply(null,
-			plugins.map(compilePlugin.bind(null, "iife"))
-		.concat(
-			plugins.map(compilePlugin.bind(null, "cjs"))
-		));
+		let plugins = fs.readdirSync(paths.plugins);
+		const files = utils.env.files;
+		if (files) { plugins = plugins.filter(dir => files.indexOf(path.basename(dir, ".js") > -1)); }
+		return merge(...formats.reduce((s, format) => {
+			// exclude module format from plugin compiles
+			if (format === "module") { return s; }
+			return s.concat(compilePlugin.bind(null, format);
+		}, []));
 	} catch (err) {
 		utils.logWarn(`No plugins found for ${utils.prettyName(lib)}.`);
 		cb();
@@ -197,7 +208,7 @@ gulp.task("plugins", cb => {
 
 gulp.task("build", gulp.parallel.apply(gulp,
 	(utils.env.isCombined ? [] : ["plugins"]).concat(
-		(utils.env.flags.format || "module,common,global").split(",").map(format => `bundle:${format}`)
+		formats.map(format => `bundle:${format}`)
 	)
 ));
 

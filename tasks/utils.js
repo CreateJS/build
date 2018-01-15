@@ -38,13 +38,10 @@ export function readFile (path, cb = null) {
 // common and es modules have a format of lib[.type].js
 export function generateBuildFilename (lib, type, min = false) {
 	let isNext = false;
-	if (type === "iife") {
+	if (type === "global") {
 		type = "";
 		isNext = !env.isProduction;
-	} else if (type === "cjs") {
-		type = "common";
 	}
-
 	return `${prettyName(lib).toLowerCase() + (isNext ? "-NEXT" : "") + (type.length > 0 ? `.${type}` : "") + (min ? ".min" : "")}.js`;
 }
 

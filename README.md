@@ -1,83 +1,45 @@
-# THIS BRANCH IS CURRENTLY UNDER HEAVY DEVELOPMENT
+# @createjs/build
 
-## We use Gulp (http://gulpjs.com/) to manage our build process.
+This package serves as the master build process for transpiling and bundling the CreateJS source code for distribution. It is installed as a dependency to each library and as such is designed to run from within the `node_modules` directory.
 
-### To use
+Individual library builds are run from the respective library packages. Combined builds are meant for CDN distribution and are run from the [CDN package](https://github.com/createjs/cdn).
 
-#### Install dependencies
+## Installation
 
-Node (>=4.2.2):
+From the library package, install:
+###### `npm install @createjs/build`
 
-```
-node -v
-```
+## Usage
 
-If your node is out of date, install the latest from:
-http://nodejs.org/
+Tasks within this package are run via npm scripts in the library packages. Here is a summary of tasks that this package can run:
 
-After node is setup, install the other dependencies:
+###### `npm run build -- [--production] [--combined] [--format=global,module,common]`
 
-```
-# Install Gulp-Cli
-npm install gulp-cli -g
+- transpile and bundle ES2015+ source to ES5 via Rollup & Babel
+- use `production` flag for minified builds
+- use `combined` flag from CDN package for combined builds
+- use `format` flag to specify which bundle formats to export, defaults to all
 
-# Install all the dependencies for this project.
-npm install
+###### `npm run plugins -- [--production] [--format=global,common] [--files=FileName]`
 
-# Make sure you have the latest of all the CreateJS libraries.
-```
+- transpile ES2015+ plugin source to ES5 via Rollup & Babel
+- use `production` flag for minified output
+- use `format` flag to specify which bundle formats to export, 'module' is disabled
+- use `files` flag to only transpile specific files (sans file extension)
 
-#### Setup
+###### `npm run dev`
 
-You'll need to change the default settings to suit your work environment.
-We have 2 config files:
+- transpile and bundle ES2015+ source to ES5 via Rollup & Babel
+- non-minified, includes sourcemaps
+- only bundles 'global' module as that is what is imported by examples
+- starts a browser-sync instance for testing examples and tutorials
+- watches source files for changes, re-compiling and reloading browser
 
-* `config.json` - Is meant to be in git and pushed to all developers.
-* `config.local.json` - Is added to `.gitignore` and only for your local setup (any settings in here will override those in `config.json`)
+###### `npm run lint`
 
-Please adjust these settings to match your environment. All paths can either be relative from this folder, or absolute paths.
+- lint source code with ESLint
+- uses the same config as the CI on GitHub, for local checks before committing
 
-* `site_path`
-* `easel_path`
-* `preload_path`
-* `sound_path`
-* `tween_path`
+###### `npm run test`
 
-#### Developing in Tandem with a library
-All of the CreateJS libs have this repository as a dependency. In order to edit this repository and have the changes reflect immediately in your
-local lib repository, you must link the repositories.
-
-```
-# From this repository, run:
-npm link .
-
-# From the lib, run:
-npm link createjs
-```
-
-This will create a symlink in the `node_modules` for the `createjs` dependency.
-
-#### Building
-To export a release build for this library run:
-
-```
-npm run build
-```
-
-This command will bundle all libs together.
-
-To build the NEXT version run:
-
-```
-npm run build:next
-```
-
-Does the exact same process as above but uses NEXT as the version.
-Non-minified NEXT builds have sourcemaps.
-
-#### Main commands
-* `npm run build` - Builds all the projects and creates combined / minified files
-* `npm run build:next` - Same as build, but uses the NEXT version.
-* `npm run cdn` - Builds a new CDN index page and copies all required script files to build.
-* `npm run copy:builds` - Copies the NEXT build (global module) from each lib into the asset dirs of the others.
-* `npm run copy:demos` - Copies each lib's examples over to the site's demos dir.
+- each library extends the master Jest config and setup file found in `tests/`
