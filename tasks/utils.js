@@ -33,6 +33,25 @@ export function readFile (path, cb = null) {
 	}
 }
 
+export function parseVersionExport (format, versions) {
+	let str = "";
+	switch (format) {
+		case "global":
+			str += "var v = exports.versions = exports.versions || {};"
+			break;
+		case "common":
+		case "module":
+			str += `
+				var cjs = window.createjs = window.createjs || {};
+				var v = cjs.v = cjs.v || {};
+			`;
+			break;
+		default:
+			throw `Unrecognized format '${format}'`;
+	}
+	Object.keys(versions).forEach(v => str += `\nv.${v} = "${versions[v]}";`);
+	return str;
+}
 
 // global modules have a format of lib[-NEXT][.min].js
 // common and es modules have a format of lib[.type].js

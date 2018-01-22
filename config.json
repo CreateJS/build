@@ -45,7 +45,6 @@
 			"Ticker",
 			"Tween",
 			"Timeline"
-		],
-		"exportsExtend": "this.createjs || {}"
+		]
 	}
 }

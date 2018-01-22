@@ -26,11 +26,11 @@
     "babel-plugin-external-helpers": "^6.22.0",
     "babel-preset-env": "^1.6.1",
     "babel-register": "^6.26.0",
-    "browser-sync": "^2.19.0",
+    "browser-sync": "^2.23.5",
     "del": "^3.0.0",
     "gulp": "github:gulpjs/gulp#4.0",
     "gulp-beautify": "^2.0.1",
-    "gulp-eslint": "^4.0.0",
+    "gulp-eslint": "^4.0.1",
     "gulp-replace": "^0.6.1",
     "gulp-sourcemaps": "2.6.x",
     "gulp-uglify": "^3.0.0",
@@ -41,14 +41,11 @@
     "rollup-plugin-exports-extend": "^1.1.2",
     "rollup-plugin-force-binding": "^1.0.6",
     "rollup-plugin-multi-entry": "^2.0.2",
-    "rollup-plugin-node-resolve": "^3.0.0",
+    "rollup-plugin-node-resolve": "^3.0.2",
     "rollup-stream": "^1.24.1",
-    "uglify-es": "^3.3.4",
-    "vinyl-buffer": "^1.0.0",
-    "vinyl-source-stream": "^1.1.0"
+    "uglify-es": "^3.3.7",
+    "vinyl-buffer": "^1.0.1",
+    "vinyl-source-stream": "^2.0.0"
   },
-	"scripts": {
-		"postinstall": "npm link ."
-	},
   "engine": "node >= 7.10.1"
 }

@@ -10,7 +10,6 @@ import babel from "rollup-plugin-babel";
 import multiEntry from "rollup-plugin-multi-entry";
 import nodeResolve from "rollup-plugin-node-resolve";
 import forceBinding from "rollup-plugin-force-binding";
-import exportsExtend from "rollup-plugin-exports-extend";
 // vinyl
 import source from "vinyl-source-stream";
 import buffer from "vinyl-buffer";
@@ -34,6 +33,7 @@ const base = `${path.resolve(process.cwd(), "../../../")}/`;
 // get the relative package and the universal config
 const pkg = require(`${base}package.json`);
 const config = require("./config.json");
+const version = utils.env.isProduction ? pkg.version : "NEXT";
 // the order of the libs here is also the order that they will be bundled in combined
 const libs = ["core", "tween", "easel", "sound", "preload"];
 // the lib that is using this process, read as @createjs/(lib)
@@ -47,7 +47,7 @@ const paths = {
 	dist: `${base}dist/`,
 	docs: `${base}docs/`,
 	// bundle entry
-	entry: `${base}src/main.js`,
+	main: `${base}src/main.js`,
 	plugins: `${base}src/plugins/`,
 	// browser-sync base
 	serve: base,
@@ -72,8 +72,8 @@ const uglify = uglifyComposer(uglifyES, console);
 // default the build formats
 const formats = (utils.env.flags.format || "module,common,global").split(",");
 const formatMap = {
-	global: "iife"
-	module: "es"
+	global: "iife",
+	module: "es",
 	common: "cjs"
 };
 
@@ -90,8 +90,10 @@ function bundle (format) {
 	const options = {
 		format: formatMap[format],
 		name: "createjs",
+		exports: "named",
+		extend: true,
 		// plugins are added below as-needed
-		plugins: [],
+		plugins: [multiEntry()],
 		// rollup is faster if we pass in the previous bundle on a re-bundle
 		cache: buildCaches[filename],
 		// min files are prepended with LICENSE, non-min with BANNER
@@ -105,37 +107,35 @@ function bundle (format) {
 		rollup: require("rollup")
 	};
 
+	const filesToBundle = [];
+	const versionExports = {};
+
 	if (utils.env.isCombined) {
-		options.plugins.push(
-			multiEntry(),
-			// force-binding must go before node-resolve since it prevents duplicates
-			forceBinding(config.rollup.forceBinding),
-			nodeResolve()
-		);
+		// force-binding must go before node-resolve since it prevents duplicates
+		options.plugins.push(forceBinding(config.rollup.forceBinding));
 		// combined bundle imports all dependencies
 		options.external = () => false;
-		// combined builds occur in the @createjs/cdn repo, which has a dependency for all of the libs.
-		options.input = libs.map(lib => `${base}/node_modules/@createjs/${lib}js/src/main.js`);
+		libs.forEach(lib => {
+			const dir = `../${utils.prettyName(lib).toLowerCase()}/`;
+			filesToBundle.push(`${dir}src/**/*.js`);
+			versionExports[lib] = require(`${dir}package.json`).version;
+		});
 	} else {
-		// point the top level export to an existing createjs
-		options.plugins.push(
-			nodeResolve(),
-			exportsExtend(config.rollup.exportsExtend)
-		);
 		// cross-library dependencies must remain externalized for individual bundles
-		options.globals = config.rollup.globals;
-		const externalDependencyRegex = new RegExp(`^(${Object.keys(options.globals).map(g => g.replace("/", "\/")).join("|")})$`);
-		options.external = id => {
-			const match = id.match(externalDependencyRegex);
-			if (match !== null) {
-				utils.logOk(`Externalizing cross-library dependency for ${match[1]}`);
-				return true;
-			}
-			return false;
-		};
-		options.input = paths.entry;
+		const externalDependencyRegex = new RegExp(
+			`^(${Object.keys(options.globals = config.rollup.globals).map(g => g.replace("/", "\/")).join("|")})$`
+		);
+		options.external = id => externalDependencyRegex.test(id);
+		filesToBundle.push("src/**/*.js");
+		versionExports[lib] = version;
 	}
 
+	options.input = {
+		include: filesToBundle,
+		exclude: [ "*/src/main.js" ]
+	};
+	options.outro = utils.parseVersionExport(format, versionExports);
+	options.plugins.push(nodeResolve());
 	// babel runs last
 	if (format !== "module") {
 		options.plugins.push(babel(config.babel));
@@ -151,19 +151,14 @@ function bundle (format) {
 	} else {
 		b = b
 			.pipe(sourcemaps.init({ loadMaps: true }))
-			.pipe(sourcemaps.mapSources(filepath =>
-				/\/(Event|EventDispatcher|Ticker)\.js$/.test(filepath)
-					? `${base}/node_modules/@createjs/core/src/${filepath.split("/src/")[1]}`
-					: filepath.substring(3)
-			))
 			.pipe(uglify(config.uglify.nonMin))
 			.pipe(beautify(config.beautify))
 			.pipe(sourcemaps.write(paths.sourcemaps));
 	}
-	// inject the build version into the bundle
 	return b
-		.pipe(replace(/<%=\sversion\s%>/g, pkg.version))
-		.pipe(gulp.dest(`${paths.dist + pkg.version}/`));
+		// strip Rollup's external dependency $# suffix from class names
+		.pipe(replace(/(\w+)\$[0-9]/g, "$1"))
+		.pipe(gulp.dest(`${paths.dist + version}/`));
 }
 
 gulp.task("bundle:module", () => bundle("module"));
@@ -198,7 +193,7 @@ gulp.task("plugins", cb => {
 		return merge(...formats.reduce((s, format) => {
 			// exclude module format from plugin compiles
 			if (format === "module") { return s; }
-			return s.concat(compilePlugin.bind(null, format);
+			return s.concat(compilePlugin.bind(null, format));
 		}, []));
 	} catch (err) {
 		utils.logWarn(`No plugins found for ${utils.prettyName(lib)}.`);
