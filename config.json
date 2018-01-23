@@ -14,14 +14,11 @@
 			"mangle": false,
 			"compress": false,
 			"output": {
+				"beautify": true,
+				"indent_level": 2,
 				"comments": "function set in gulpfile"
 			}
 		}
-	},
-
-	"beautify": {
-		"indent_size": 2,
-		"max_preserve_newlines": 1
 	},
 
 	"babel": {

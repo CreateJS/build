@@ -1,6 +1,7 @@
 import gulp from "gulp";
 import gutil from "gulp-util";
 import fs from "fs";
+import path from "path";
 
 // gulp-util.log with chalk colors
 export function log (...text) {
@@ -33,6 +34,7 @@ export function readFile (path, cb = null) {
 	}
 }
 
+// return a string representation of the library versions being bundled for exporting
 export function parseVersionExport (format, versions) {
 	let str = "";
 	switch (format) {
