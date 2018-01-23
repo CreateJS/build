@@ -78,9 +78,7 @@ const formatMap = {
 
 // overwrite the comments strings in the config with functions
 // preserve the injected license header, strip everything else
-config.uglify.min.output.comments = (node, comment) => comment.line === 1;
-// preserve the injected license header, strip license blocks
-config.uglify.nonMin.output.comments = (node, comment) => comment.line === 1 || !(/@(uglify|license|copyright)/i.test(comment.value));
+config.uglify.min.output.comments = config.uglify.nonMin.output.comments = (node, comment) => comment.line === 1;
 
 function bundle (format) {
 	// only minify in prod and for global bundles
