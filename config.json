@@ -33,8 +33,8 @@
 
 	"rollup": {
 		"globals": {
-			"tweenjs/src/Tween": "this.createjs && this.createjs.Tween",
-			"tweenjs/src/Timeline": "this.createjs && this.createjs.Timeline"
+			"@createjs/tweenjs/src/Tween": "this.createjs && this.createjs.Tween",
+			"@createjs/tweenjs/src/Timeline": "this.createjs && this.createjs.Timeline"
 		},
 		"forceBinding": [
 			"Event",
