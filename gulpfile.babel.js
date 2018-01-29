@@ -48,12 +48,11 @@ const paths = {
 	// bundle entry
 	main: `${base}/src/main.js`,
 	plugins: `${base}/src/plugins`,
-	// browser-sync base
-	serve: base,
-	// extra folders
+	// static html folders
 	examples: `${base}/examples/**/*`,
 	extras: `${base}/extras/**/*`,
 	tutorials: `${base}/tutorials/**/*`,
+	spikes: `${base}/spikes/**/*`,
 	// glob for js watch
 	sourceFiles: `${base}/src/**/*.js`,
 	// sourcemap location, relative to js file not repo
@@ -195,9 +194,7 @@ gulp.task("plugins", cb => {
 });
 
 gulp.task("build", gulp.parallel.apply(gulp,
-	(utils.env.isCombined ? [] : ["plugins"]).concat(
-		formats.map(format => `bundle:${format}`)
-	)
+	formats.map(format => `bundle:${format}`)
 ));
 
 //////////////////////////////////////////////////////////////
@@ -213,8 +210,12 @@ gulp.task("serve", () => {
 		host: "localhost",
 		port: 3000,
 		server: {
-			baseDir: paths.serve,
-			directory: true
+			baseDir: base,
+			directory: true,
+			routes: {
+				"/shared": "./assets",
+				"/libs": "../",
+			}
 		},
 		ghostMode: false,
 		logLevel: "info",
@@ -229,9 +230,9 @@ gulp.task("reload", cb => {
 
 // only rebundle the global module during dev since that's what the examples use
 gulp.task("watch", () => {
-	utils.watch(paths.sourceFiles, gulp.series("bundle:global", "reload"));
+	utils.watch(paths.sourceFiles, gulp.series("build", "reload"));
 	utils.watch(`${paths.plugins}/*.js`, gulp.series("plugins", "reload"));
-	utils.watch([paths.examples, paths.extras, paths.tutorials], gulp.series("reload"));
+	utils.watch([paths.examples, paths.extras, paths.tutorials, paths.spikes], gulp.series("reload"));
 });
 
 gulp.task("dev", gulp.series(
