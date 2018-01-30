@@ -29,7 +29,7 @@ import browserSync from "browser-sync";
 //////////////////////////////////////////////////////////////
 
 // the build repo lives at /node_modules/@createjs/build/ inside the lib repos
-const base = path.resolve(process.cwd(), "../../../");
+const base = path.resolve(process.env.PWD || process.cwd(), "../../../");
 // get the relative package and the universal config
 const pkg = require(`${base}/package.json`);
 const config = require("./config.json");
