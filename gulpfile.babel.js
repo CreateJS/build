@@ -48,6 +48,7 @@ const paths = {
 	// bundle entry
 	main: `${base}/src/main.js`,
 	plugins: `${base}/src/plugins`,
+	assets: `${base}/assets/js`,
 	// static html folders
 	examples: `${base}/examples/**/*`,
 	extras: `${base}/extras/**/*`,
@@ -145,6 +146,12 @@ function bundle (format) {
 	} else {
 		b = b
 			.pipe(sourcemaps.init({ loadMaps: true }))
+			// TODO: Don't hardcode these paths
+			.pipe(sourcemaps.mapSources(filepath =>
+				/\/(Event|EventDispatcher|Ticker)\.js$/.test(filepath)
+					? `${base}/node_modules/@createjs/core/src/${filepath.split("/src/")[1]}`
+					: filepath.substring(3)
+			))
 			.pipe(uglify(config.uglify.nonMin))
 			.pipe(sourcemaps.write(paths.sourcemaps));
 	}
@@ -157,45 +164,68 @@ function bundle (format) {
 gulp.task("bundle:module", () => bundle("module"));
 gulp.task("bundle:common", () => bundle("common"));
 gulp.task("bundle:global", () => bundle("global"));
+gulp.task("build", gulp.parallel.apply(gulp, formats.map(format => `bundle:${format}`)));
 
-function compilePlugin (format, entry) {
-	const options = {
-		input: `${paths.plugins}/${entry}`,
-		format: formatMap[format],
-		name: "createjs",
-		plugins: [babel(config.babel)],
-		banner: gutil.template(
-			utils.readFile(paths.BANNER),
-			{ name: utils.generateBuildFilename(path.basename(entry, ".js"), format), file: "" }
-		)
-	};
-	return rollup(options)
-		.pipe(source(filename))
-		.pipe(buffer())
-		.pipe(gulp.dest(`${paths.dist}/plugins`));
-}
-
-// we don't compile a module version because that's just the source file...
+// don't compile a module version because that's just the source file...
 gulp.task("plugins", cb => {
 	try {
 		// readdirSync() will throw if the dir isn't found
 		let plugins = fs.readdirSync(paths.plugins);
 		const files = utils.env.flags.files;
 		if (files) { plugins = plugins.filter(dir => files.indexOf(path.basename(dir, ".js") > -1)); }
-		return merge(...formats.reduce((s, format) => {
-			// exclude module format from plugin compiles
-			if (format === "module") { return s; }
-			return s.concat(compilePlugin.bind(null, format));
-		}, []));
+		// compile the desired plugin(s) in the desired format(s), then flatten and merge the output stream
+		return merge.apply(null, formats.filter(f => f !== "module").map(format => {
+			return plugins.map(filename => {
+				const options = {
+					input: `${paths.plugins}/${filename}`,
+					format: formatMap[format],
+					name: "createjs",
+					plugins: [babel(config.babel)],
+					banner: gutil.template(
+						utils.readFile(paths.BANNER),
+						{ name: utils.generateBuildFilename(path.basename(filename, ".js"), format), file: "" }
+					)
+				};
+				return rollup(options)
+					.pipe(source(filename))
+					.pipe(buffer())
+					.pipe(gulp.dest(`${paths.dist}/plugins`));
+			});
+		}).reduce((a, b) => a.concat(b)));
 	} catch (err) {
 		utils.logWarn(`No plugins found for ${utils.prettyName(lib)}.`);
 		cb();
 	}
 });
 
-gulp.task("build", gulp.parallel.apply(gulp,
-	formats.map(format => `bundle:${format}`)
-));
+// we don't compile a module version because that's just the source file...
+gulp.task("assets", cb => {
+	try {
+		// readdirSync() will throw if the dir isn't found
+		let assets = fs.readdirSync(paths.assets);
+		const files = utils.env.flags.files;
+		if (files) { assets = assets.filter(dir => files.indexOf(path.basename(dir, ".js") > -1)); }
+		return merge.apply(null, assets.map(filename => {
+			const options = {
+				input: `${paths.assets}/src/${filename}`,
+				format: formatMap.global,
+				name: "createjs",
+				plugins: [babel(config.babel)],
+				banner: gutil.template(
+					utils.readFile(paths.BANNER),
+					{ name: utils.generateBuildFilename(path.basename(filename, ".js"), format), file: "" }
+				)
+			};
+			return rollup(options)
+				.pipe(source(filename))
+				.pipe(buffer())
+				.pipe(gulp.dest(paths.assets));
+		}));
+	} catch (err) {
+		utils.logWarn(`No assets found for ${utils.prettyName(lib)}.`);
+		cb();
+	}
+});
 
 //////////////////////////////////////////////////////////////
 // DEV
@@ -232,6 +262,7 @@ gulp.task("reload", cb => {
 gulp.task("watch", () => {
 	utils.watch(paths.sourceFiles, gulp.series("build", "reload"));
 	utils.watch(`${paths.plugins}/*.js`, gulp.series("plugins", "reload"));
+	utils.watch(`${paths.assets}/src/*.js`, gulp.series("assets", "reload"));
 	utils.watch([paths.examples, paths.extras, paths.tutorials, paths.spikes], gulp.series("reload"));
 });
 
