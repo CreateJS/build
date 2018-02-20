@@ -180,6 +180,8 @@ gulp.task("plugins", cb => {
 					input: `${paths.plugins}/${filename}`,
 					format: formatMap[format],
 					name: "createjs",
+					exports: "named",
+					extend: true,
 					plugins: [babel(config.babel)],
 					banner: gutil.template(
 						utils.readFile(paths.BANNER),
