@@ -29,9 +29,15 @@ import browserSync from "browser-sync";
 //////////////////////////////////////////////////////////////
 
 // the build repo lives at /node_modules/@createjs/build/ inside the lib repos
-const base = path.resolve(process.env.PWD || process.cwd(), "../../../");
-// get the relative package and the universal config
-const pkg = require(`${base}/package.json`);
+let p, b;
+try {
+	b = path.resolve(process.cwd(), "../../../");
+	p = require(`${b}/package.json`);
+} catch (e) {
+	b = process.platform === "win32" ? process.env.PWD : path.resolve(process.env.PWD, "../../../");
+	p = require(`${b}/package.json`);
+}
+const base = b, pkg = p;
 const config = require("./config.json");
 const version = utils.env.isProduction ? pkg.version : "NEXT";
 // the order of the libs here is also the order that they will be bundled in combined
