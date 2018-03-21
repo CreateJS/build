@@ -6,7 +6,7 @@ module.exports = {
 	setupTestFrameworkScriptFile: "@createjs/build/tests/setup",
 	collectCoverage: true,
 	collectCoverageFrom: [
-		"src/**/*.js"
+		"src/**/!(main).js"
   ],
 	coveragePathIgnorePatterns: [
 		"/node_modules/",
@@ -19,5 +19,7 @@ module.exports = {
   ],
 	notify: true,
 	verbose: true,
-	resources: "usable"
+	testEnvironmentOptions: {
+		resources: "usable"
+	}
 };
