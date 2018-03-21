@@ -258,11 +258,7 @@ gulp.task("serve", () => {
 		port: 3000,
 		server: {
 			baseDir: base,
-			directory: true,
-			routes: {
-				"/shared": "./assets",
-				"/libs": "../",
-			}
+			directory: true
 		},
 		ghostMode: false,
 		logLevel: "info",
@@ -294,10 +290,10 @@ gulp.task("dev", gulp.series(
 //////////////////////////////////////////////////////////////
 // LINT
 //////////////////////////////////////////////////////////////
-
+/* Incomplete
 gulp.task("lint", function () {
 	// fail after error to break the travis build.
 	return gulp.src(paths.sourceFiles)
 		.pipe(eslint())
 		.pipe(eslint.format("codeframe"));
-});
+});*/
