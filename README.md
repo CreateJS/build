@@ -37,6 +37,7 @@ Tasks within this package are run via npm scripts in the library packages. Here 
 
 ###### `npm run lint`
 
+- *NOT YET IMPLEMENTED*
 - lint source code with ESLint
 - uses the same config as the CI on GitHub, for local checks before committing
 
