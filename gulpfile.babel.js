@@ -106,6 +106,8 @@ function bundle (format) {
 		),
 		// only dev builds get sourcemaps
 		sourcemap: !minify,
+		// for core and version exports
+		outro: '',
 		// point to latest rollup so we're not depending on rollup-stream's updates
 		rollup: require("rollup")
 	};
@@ -123,19 +125,26 @@ function bundle (format) {
 		options.input = libs.map(lib => {
 			const dir = `../${utils.prettyName(lib).toLowerCase()}/`;
 			versionExports[lib] = require(`${dir}package.json`).version;
+			// TODO: if version is "NEXT", append the git commit hash `NEXT@hash`
 			return `${dir}/src/main.js`;
 		});
 	} else {
+		options.globals = config.rollup.globals;
 		// cross-library dependencies must remain externalized for individual bundles
 		const externalDependencyRegex = new RegExp(
-			`^(${Object.keys(options.globals = config.rollup.globals).map(g => g.replace("/", "\/")).join("|")})$`
+			`^(${Object.keys(options.globals).map(g => g.replace("/", "\/")).join("|")})$`
 		);
 		options.external = id => externalDependencyRegex.test(id);
 		options.input = `${base}/src/main.js`;
 		versionExports[lib] = version;
+		options.outro +=
+			format === "module"
+			? 'export { Event, EventDispatcher, Ticker };\n'
+			: "exports.Event = Event;\nexports.EventDispatcher = EventDispatcher;\nexports.Ticker = Ticker;\n";
+		// TODO: Only export core utils that are present in the lib.
 	}
 
-	options.outro = utils.parseVersionExport(format, versionExports);
+	options.outro += utils.parseVersionExport(format, versionExports);
 	options.plugins.push(nodeResolve());
 	// babel runs last
 	if (format !== "module") {
