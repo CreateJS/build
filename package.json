@@ -46,5 +46,5 @@
     "vinyl-buffer": "^1.0.1",
     "vinyl-source-stream": "^2.0.0"
   },
-  "engine": "node >= 7.10.1"
+  "engine": "node >= 8.9.4"
 }
