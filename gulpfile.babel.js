@@ -8,6 +8,7 @@ import rollup from "rollup-stream";
 import babel from "rollup-plugin-babel";
 import multiEntry from "rollup-plugin-multi-entry";
 import nodeResolve from "rollup-plugin-node-resolve";
+import commonjs from "rollup-plugin-commonjs";
 import forceBinding from "rollup-plugin-force-binding";
 // vinyl
 import source from "vinyl-source-stream";
@@ -82,23 +83,25 @@ function bundle (format) {
 	const minify = utils.env.isProduction && format === "global";
 	const filename = utils.generateBuildFilename(lib, format, minify);
 	const options = {
-		format: formatMap[format],
-		name: "createjs",
-		exports: "named",
-		extend: true,
+		output: {
+			format: formatMap[format],
+			name: "createjs",
+			exports: "named",
+			extend: true,
+			// min files are prepended with LICENSE, non-min with BANNER
+			banner: gutil.template(
+				utils.readFile(paths[minify ? "LICENSE" : "BANNER"]),
+				{ name: utils.prettyName(lib), file: "" }
+			),
+			// only dev builds get sourcemaps
+			sourcemap: !minify,
+			// for core and version exports
+			outro: ''
+		},
 		// plugins are added below as-needed
 		plugins: [],
 		// rollup is faster if we pass in the previous bundle on a re-bundle
 		cache: buildCaches[filename],
-		// min files are prepended with LICENSE, non-min with BANNER
-		banner: gutil.template(
-			utils.readFile(paths[minify ? "LICENSE" : "BANNER"]),
-			{ name: utils.prettyName(lib), file: "" }
-		),
-		// only dev builds get sourcemaps
-		sourcemap: !minify,
-		// for core and version exports
-		outro: '',
 		// point to latest rollup so we're not depending on rollup-stream's updates
 		rollup: require("rollup")
 	};
@@ -120,23 +123,23 @@ function bundle (format) {
 			return `${dir}/src/main.js`;
 		});
 	} else {
-		options.globals = config.rollup.globals;
+		options.output.globals = config.rollup.globals;
 		// cross-library dependencies must remain externalized for individual bundles
 		const externalDependencyRegex = new RegExp(
-			`^(${Object.keys(options.globals).map(g => g.replace("/", "\/")).join("|")})$`
+			`^(${Object.keys(options.output.globals).map(g => g.replace("/", "\/")).join("|")})$`
 		);
 		options.external = id => externalDependencyRegex.test(id);
 		options.input = `${base}/src/main.js`;
 		versionExports[lib] = version;
-		options.outro +=
+		options.output.outro +=
 			format === "module"
 			? "export { Event, EventDispatcher, Ticker };\n"
 			: "exports.Event = Event;\nexports.EventDispatcher = EventDispatcher;\nexports.Ticker = Ticker;\n";
 		// TODO: Only export core utils that are present in the lib.
 	}
 
-	options.outro += utils.parseVersionExport(format, versionExports);
-	options.plugins.push(nodeResolve(config.rollup.nodeResolve));
+	options.output.outro += utils.parseVersionExport(format, versionExports);
+	options.plugins.push(nodeResolve(config.rollup.nodeResolve), commonjs(config.rollup.commonjs));
 	// babel runs last
 	if (format !== "module") {
 		options.plugins.push(babel(config.babel));

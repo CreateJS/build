@@ -45,6 +45,9 @@
 		],
 		"nodeResolve": {
 			"browser": true
+		},
+		"commonjs": {
+
 		}
 	}
 }
