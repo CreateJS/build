@@ -64,6 +64,14 @@ const paths = {
 
 // stores bundle caches for rebundling with rollup
 const buildCaches = {};
+// instantiate rollup plugins only once
+config.rollup.plugins = {
+	babel: babel(config.babel),
+	multiEntry: multiEntry(config.rollup.multiEntry),
+	nodeResolve: nodeResolve(config.rollup.nodeResolve),
+	commonjs: commonjs(),
+	forceBinding: forceBinding(config.rollup.forceBinding)
+}
 // configure gulp-uglify to use uglify-es for ES2015+ support
 const uglify = uglifyComposer(uglifyES, console);
 // default the build formats
@@ -111,8 +119,8 @@ function bundle (format) {
 	if (utils.env.isCombined) {
 		// force-binding must go before node-resolve since it prevents duplicates
 		options.plugins.push(
-			multiEntry(),
-			forceBinding(config.rollup.forceBinding)
+			config.rollup.plugins.multiEntry,
+			config.rollup.plugins.forceBinding
 		);
 		// combined bundle imports all dependencies
 		options.external = () => false;
@@ -139,10 +147,13 @@ function bundle (format) {
 	}
 
 	options.output.outro += utils.parseVersionExport(format, versionExports);
-	options.plugins.push(nodeResolve(config.rollup.nodeResolve), commonjs(config.rollup.commonjs));
+	options.plugins.push(
+		config.rollup.plugins.nodeResolve,
+		config.rollup.plugins.commonjs
+	);
 	// babel runs last
 	if (format !== "module") {
-		options.plugins.push(babel(config.babel));
+		options.plugins.push(config.rollup.plugins.babel);
 	}
 
 	let b = rollup(options)
