@@ -28,16 +28,7 @@ import browserSync from "browser-sync";
 // CONSTANTS
 //////////////////////////////////////////////////////////////
 
-// the build repo lives at /node_modules/@createjs/build/ inside the lib repos
-let p, b;
-try {
-	b = path.resolve(process.cwd(), "../../../");
-	p = require(`${b}/package.json`);
-} catch (e) {
-	b = process.platform === "win32" ? process.env.PWD : path.resolve(process.env.PWD, "../../../");
-	p = require(`${b}/package.json`);
-}
-const base = b, pkg = p;
+const { base, pkg } = utils.getBasePathAndPackage();
 const config = require("./config.json");
 const version = utils.env.isProduction ? pkg.version : "NEXT";
 // the order of the libs here is also the order that they will be bundled in combined
@@ -139,13 +130,13 @@ function bundle (format) {
 		versionExports[lib] = version;
 		options.outro +=
 			format === "module"
-			? 'export { Event, EventDispatcher, Ticker };\n'
+			? "export { Event, EventDispatcher, Ticker };\n"
 			: "exports.Event = Event;\nexports.EventDispatcher = EventDispatcher;\nexports.Ticker = Ticker;\n";
 		// TODO: Only export core utils that are present in the lib.
 	}
 
 	options.outro += utils.parseVersionExport(format, versionExports);
-	options.plugins.push(nodeResolve());
+	options.plugins.push(nodeResolve(config.rollup.nodeResolve));
 	// babel runs last
 	if (format !== "module") {
 		options.plugins.push(babel(config.babel));

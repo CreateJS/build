@@ -43,4 +43,5 @@ Tasks within this package are run via npm scripts in the library packages. Here 
 
 ###### `npm test`
 
-- each library extends the master Jest config and setup file found in `tests/`
+- uses Jest to run tests on spec files found in the `tests/` folder
+- each library extends the master Jest config and setup file found in the build repo

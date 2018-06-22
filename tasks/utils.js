@@ -79,3 +79,16 @@ export const env = {
 	get isProduction () { return this.flags.production; },
 	get isCombined () { return this.flags.combined; }
 }
+
+export function getBasePathAndPackage () {
+	// the build repo lives at /node_modules/@createjs/build/ inside the lib repos
+	let base, pkg;
+	try {
+		base = path.resolve(process.cwd(), "../../../");
+		pkg = require(`${base}/package.json`);
+	} catch (e) {
+		base = process.platform === "win32" ? process.env.PWD : path.resolve(process.env.PWD, "../../../");
+		pkg = require(`${base}/package.json`);
+	}
+	return { base, pkg };
+}
