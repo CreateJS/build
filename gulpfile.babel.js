@@ -1,36 +1,27 @@
 // gulp
-import gulp from "gulp";
-import sourcemaps from "gulp-sourcemaps";
-import replace from "gulp-replace";
-import gutil from "gulp-util";
+const gulp = require("gulp");
 // rollup
-import rollup from "rollup-stream";
-import babel from "rollup-plugin-babel";
-import multiEntry from "rollup-plugin-multi-entry";
-import nodeResolve from "rollup-plugin-node-resolve";
-import commonjs from "rollup-plugin-commonjs";
-import forceBinding from "rollup-plugin-force-binding";
-// vinyl
-import source from "vinyl-source-stream";
-import buffer from "vinyl-buffer";
+const rollup = require("rollup");
+const babel = require("rollup-plugin-babel");
+const multiEntry = require("rollup-plugin-multi-entry");
+const nodeResolve = require("rollup-plugin-node-resolve");
+const commonjs = require("rollup-plugin-commonjs");
+const cleanup = require("rollup-plugin-cleanup");
+const uglify = require("rollup-plugin-uglify").uglify;
 // utils
-import * as utils from "./tasks/utils";
-// built-ins
-import fs from "fs";
-import path from "path";
+const utils = require("./tasks/utils");
+const template = require("lodash.template");
+const path = require("path");
 // other
-import uglifyComposer from "gulp-uglify/composer";
-import uglifyES from "uglify-es";
-import merge from "merge-stream";
-import del from "del";
-import browserSync from "browser-sync";
+const del = require("del");
+const browserSync = require("browser-sync");
 
 //////////////////////////////////////////////////////////////
 // CONSTANTS
 //////////////////////////////////////////////////////////////
 
-const { base, pkg } = utils.getBasePathAndPackage();
-const config = require("./config.json");
+const base = utils.base;
+const pkg = utils.pkg;
 const version = utils.env.isProduction ? pkg.version : "NEXT";
 // the order of the libs here is also the order that they will be bundled in combined
 const libs = ["core", "tween", "easel", "sound", "preload"];
@@ -38,24 +29,19 @@ const libs = ["core", "tween", "easel", "sound", "preload"];
 const lib = pkg.name.split("/")[1];
 // quickrefs
 const paths = {
-	// assets
 	LICENSE: "./assets/LICENSE",
 	BANNER: "./assets/BANNER",
-	// generated folders
-	dist: `${base}/dist`,
-	// bundle entry
-	main: `${base}/src/main.js`,
-	plugins: `${base}/src/plugins`,
-	assets: `${base}/assets/js`,
-	// static html folders
-	examples: `${base}/examples/**/*`,
-	extras: `${base}/extras/**/*`,
-	tutorials: `${base}/tutorials/**/*`,
-	spikes: `${base}/spikes/**/*`,
-	// glob for js watch
-	sourceFiles: `${base}/src/**/*.js`,
-	// sourcemap location, relative to js file not repo
-	sourcemaps: "./maps"
+	dist: path.join(base, "dist"),
+	main: path.join(base, "src/main.js"),
+	plugins: path.join(base, "src/plugins"),
+	watch: {
+		js: "src/**/*.js",
+		plugins: "src/plugins/**/*.js",
+		examples: "examples/**/*",
+		extras: "extras/**/*",
+		tutorials: "tutorials/**/*",
+		spikes: "spikes/**/*"
+	}
 };
 
 //////////////////////////////////////////////////////////////
@@ -65,189 +51,136 @@ const paths = {
 // stores bundle caches for rebundling with rollup
 const buildCaches = {};
 // instantiate rollup plugins only once
-config.rollup.plugins = {
-	babel: babel(config.babel),
-	multiEntry: multiEntry(config.rollup.multiEntry),
-	nodeResolve: nodeResolve(config.rollup.nodeResolve),
+const plugins = {
+	babel: babel({
+		babelrc: false,
+		configFile: "./babel.config.js"
+	}),
+	multiEntry: multiEntry(),
+	nodeResolve: nodeResolve(),
 	commonjs: commonjs(),
-	forceBinding: forceBinding(config.rollup.forceBinding)
-}
-// configure gulp-uglify to use uglify-es for ES2015+ support
-const uglify = uglifyComposer(uglifyES, console);
-// default the build formats
-const formats = (utils.env.flags.format || "module,common,global").split(",");
-const formatMap = {
-	global: "iife",
-	module: "es",
-	common: "cjs"
-};
-
-// overwrite the comments strings in the config with functions
-// preserve the injected license header, strip everything else
-config.uglify.min.output.comments = config.uglify.nonMin.output.comments = (node, comment) => comment.line === 1;
-
-function bundle (format) {
-	// only minify in prod and for global bundles
-	const minify = utils.env.isProduction && format === "global";
-	const filename = utils.generateBuildFilename(lib, format, minify);
-	const options = {
+	uglify: uglify({
 		output: {
-			format: formatMap[format],
-			name: "createjs",
-			exports: "named",
-			extend: true,
-			// min files are prepended with LICENSE, non-min with BANNER
-			banner: gutil.template(
-				utils.readFile(paths[minify ? "LICENSE" : "BANNER"]),
-				{ name: utils.prettyName(lib), file: "" }
-			),
-			// only dev builds get sourcemaps
-			sourcemap: !minify,
-			// for core and version exports
-			outro: ''
+			// preserves the @license banner
+			comments: (node, comment) => comment.line === 1
 		},
+		compress: {
+			global_defs: {
+				// drop debug statements
+				DEBUG: false
+			}
+		}
+	}),
+	cleanup: cleanup({
+		comments: "srcmaps"
+	})
+};
+// default the build formats
+const formats = (utils.env.options.format || "cjs,iife").split(",");
+
+// returns an async function for bundling
+const bundle = (format) => async () => {
+	const minify = utils.env.isProduction;
+	const filename = utils.generateBuildFilename(lib, format, minify);
+	const bundleOptions = {
 		// plugins are added below as-needed
 		plugins: [],
 		// rollup is faster if we pass in the previous bundle on a re-bundle
 		cache: buildCaches[filename],
-		// point to latest rollup so we're not depending on rollup-stream's updates
-		rollup: require("rollup")
+	};
+	const writeOptions = {
+		format,
+		file: path.join(paths.dist, filename),
+		name: "createjs",
+		exports: "named",
+		extend: true,
+		// min files are prepended with LICENSE, non-min with BANNER
+		banner: template(await utils.readFile(paths[minify ? "LICENSE" : "BANNER"]))({ name: utils.prettyName(lib) }),
+		// only dev builds get sourcemaps
+		sourcemap: !minify
 	};
 
 	const versionExports = {};
 
 	if (utils.env.isCombined) {
-		// force-binding must go before node-resolve since it prevents duplicates
-		options.plugins.push(
-			config.rollup.plugins.multiEntry,
-			config.rollup.plugins.forceBinding
-		);
+		bundleOptions.plugins.push(plugins.multiEntry);
 		// combined bundle imports all dependencies
-		options.external = () => false;
-		options.input = libs.map(lib => {
-			const dir = `../${utils.prettyName(lib).toLowerCase()}/`;
-			versionExports[lib] = require(`${dir}package.json`).version;
+		bundleOptions.external = () => false;
+		bundleOptions.input = libs.map(lib => {
+			const dir = `../${utils.prettyName(lib).toLowerCase()}`;
+			versionExports[lib] = require(path.join(dir, "package.json")).version;
 			// TODO: if version is "NEXT", append the git commit hash `NEXT@hash`
-			return `${dir}/src/main.js`;
+			return path.join(dir, "src/main.js");
 		});
 	} else {
-		options.output.globals = config.rollup.globals;
+		writeOptions.globals = {};
+		// don't globalize core lib
+		libs.slice(1).forEach(lib => writeOptions.globals[`@createjs/${lib}js`] = "this.createjs");
 		// cross-library dependencies must remain externalized for individual bundles
-		const externalDependencyRegex = new RegExp(
-			`^(${Object.keys(options.output.globals).map(g => g.replace("/", "\/")).join("|")})$`
-		);
-		options.external = id => externalDependencyRegex.test(id);
-		options.input = `${base}/src/main.js`;
+		bundleOptions.external = id => /@createjs\/(?!core)/.test(id);
+		bundleOptions.input = paths.main;
 		versionExports[lib] = version;
-		options.output.outro +=
-			format === "module"
-			? "export { Event, EventDispatcher, Ticker };\n"
-			: "exports.Event = Event;\nexports.EventDispatcher = EventDispatcher;\nexports.Ticker = Ticker;\n";
-		// TODO: Only export core utils that are present in the lib.
 	}
 
-	options.output.outro += utils.parseVersionExport(format, versionExports);
-	options.plugins.push(
-		config.rollup.plugins.nodeResolve,
-		config.rollup.plugins.commonjs
+	writeOptions.outro = utils.parseVersionExport(format, versionExports);
+	bundleOptions.plugins.push(
+		plugins.nodeResolve,
+		plugins.commonjs,
+		plugins.babel
 	);
-	// babel runs last
-	if (format !== "module") {
-		options.plugins.push(config.rollup.plugins.babel);
-	}
 
-	let b = rollup(options)
-		// cache bundle for re-bundles triggered by watch
-		.on("bundle", bundle => buildCaches[filename] = bundle)
-		.pipe(source(filename))
-		.pipe(buffer());
-	if (minify) {
-		b = b.pipe(uglify(config.uglify.min));
+	// only minify iife bundles
+	if (minify && format === "iife") {
+		bundleOptions.plugins.push(plugins.uglify);
 	} else {
-		b = b
-			.pipe(sourcemaps.init({ loadMaps: true }))
-			// TODO: Don't hardcode these paths
-			.pipe(sourcemaps.mapSources(filepath =>
-				/\/(Event|EventDispatcher|Ticker)\.js$/.test(filepath)
-					? `${base}/node_modules/@createjs/core/src/${filepath.split("/src/")[1]}`
-					: filepath.substring(3)
-			))
-			.pipe(uglify(config.uglify.nonMin))
-			.pipe(sourcemaps.write(paths.sourcemaps));
+		bundleOptions.plugins.push(plugins.cleanup);
 	}
-	return b
-		// strip Rollup's external dependency $# suffix from class names
-		.pipe(replace(/(\w+)\$[0-9]/g, "$1"))
-		.pipe(gulp.dest(paths.dist));
-}
 
-gulp.task("bundle:module", () => bundle("module"));
-gulp.task("bundle:common", () => bundle("common"));
-gulp.task("bundle:global", () => bundle("global"));
+	return rollup.rollup(bundleOptions).then(b => {
+		buildCaches[filename] = b.cache;
+		return b.write(writeOptions);
+	});
+};
+
+gulp.task("bundle:cjs", bundle("cjs"));
+gulp.task("bundle:iife", bundle("iife"));
 gulp.task("build", gulp.parallel.apply(gulp, formats.map(format => `bundle:${format}`)));
 
-// don't compile a module version because that's just the source file...
-gulp.task("plugins", cb => {
-	try {
-		// readdirSync() will throw if the dir isn't found
-		let plugins = fs.readdirSync(paths.plugins);
-		const files = utils.env.flags.files;
-		if (files) { plugins = plugins.filter(dir => files.indexOf(path.basename(dir, ".js") > -1)); }
-		// compile the desired plugin(s) in the desired format(s), then flatten and merge the output stream
-		return merge.apply(null, formats.filter(f => f !== "module").map(format => {
-			return plugins.map(filename => {
-				const options = {
-					input: `${paths.plugins}/${filename}`,
-					format: formatMap[format],
-					name: "createjs",
-					exports: "named",
-					extend: true,
-					plugins: [babel(config.babel)],
-					banner: gutil.template(
-						utils.readFile(paths.BANNER),
-						{ name: utils.generateBuildFilename(path.basename(filename, ".js"), format), file: "" }
-					)
-				};
-				return rollup(options)
-					.pipe(source(filename))
-					.pipe(buffer())
-					.pipe(gulp.dest(`${paths.dist}/plugins`));
-			});
-		}).reduce((a, b) => a.concat(b)));
-	} catch (err) {
-		utils.logWarn(`No plugins found for ${utils.prettyName(lib)}.`);
-		cb();
-	}
-});
+const bundlePlugins = (format) => async done => {
+	// read plugin directory, bailing if it's not found
+	let plugins = await utils.readDir(paths.plugins);
+	if (!plugins) { done(); }
+	// filter plugins if files flag is present
+	const files = utils.env.options.files;
+	if (files) { plugins = plugins.filter(dir => files.includes(path.basename(dir, ".js"))); }
+	const banner = template(await utils.readFile(paths.BANNER))({ name: utils.prettyName(lib) });
 
-// we don't compile a module version because that's just the source file...
-gulp.task("assets", cb => {
-	try {
-		// readdirSync() will throw if the dir isn't found
-		let assets = fs.readdirSync(paths.assets);
-		const files = utils.env.flags.files;
-		if (files) { assets = assets.filter(dir => files.indexOf(path.basename(dir, ".js") > -1)); }
-		return merge.apply(null, assets.map(filename => {
-			const options = {
-				input: `${paths.assets}/src/${filename}`,
-				format: formatMap.global,
-				name: "createjs",
-				plugins: [babel(config.babel)],
-				banner: gutil.template(
-					utils.readFile(paths.BANNER),
-					{ name: utils.generateBuildFilename(path.basename(filename, ".js"), format), file: "" }
-				)
+	return Promise.all(
+		plugins.map(plugin => {
+			const bundleOptions = {
+				input: path.join(paths.plugins, plugin),
+				plugins: [
+					plugins.babel,
+					plugins.cleanup
+				],
 			};
-			return rollup(options)
-				.pipe(source(filename))
-				.pipe(buffer())
-				.pipe(gulp.dest(paths.assets));
-		}));
-	} catch (err) {
-		utils.logWarn(`No assets found for ${utils.prettyName(lib)}.`);
-		cb();
-	}
-});
+			const writeOptions = {
+				format,
+				file: path.join(paths.dist, "plugins", plugin),
+				name: "createjs",
+				exports: "named",
+				extend: true,
+				sourcemap: true,
+				banner
+			};
+			return rollup.rollup(bundleOptions).then(b => b.write(writeOptions));
+		})
+	);
+};
+
+gulp.task("plugins:cjs", bundlePlugins("cjs"));
+gulp.task("plugins:iife", bundlePlugins("iife"));
+gulp.task("plugins", gulp.parallel.apply(gulp, formats.map(format => `plugins:${format}`)));
 
 //////////////////////////////////////////////////////////////
 // DEV
@@ -276,29 +209,22 @@ gulp.task("reload", cb => {
 	cb();
 });
 
-// only rebundle the global module during dev since that's what the examples use
 gulp.task("watch", () => {
-	utils.watch(paths.sourceFiles, gulp.series("build", "reload"));
-	utils.watch(`${paths.plugins}/*.js`, gulp.series("plugins", "reload"));
-	utils.watch(`${paths.assets}/src/*.js`, gulp.series("assets", "reload"));
-	utils.watch([paths.examples, paths.extras, paths.tutorials, paths.spikes], gulp.series("reload"));
+	const w = paths.watch;
+	utils.watch([w.js, `!${w.plugins}`], gulp.series("build", "reload"));
+  utils.watch(w.plugins, gulp.series("plugins", "reload"));
+	utils.watch([w.examples, w.extras, w.tutorials, w.spikes], gulp.series("reload"));
 });
 
-gulp.task("dev", gulp.series(
-	"build",
-	gulp.parallel(
-		"serve",
-		"watch"
-	)
-));
+gulp.task("dev", gulp.series("build", gulp.parallel("serve", "watch")));
 
 //////////////////////////////////////////////////////////////
 // LINT
 //////////////////////////////////////////////////////////////
-/* Incomplete
-gulp.task("lint", function () {
-	// fail after error to break the travis build.
-	return gulp.src(paths.sourceFiles)
+
+gulp.task("lint", () => {
+	// fail after error to break the travis build
+	return gulp.src(paths.src)
 		.pipe(eslint())
 		.pipe(eslint.format("codeframe"));
-});*/
+});
