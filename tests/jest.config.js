@@ -1,25 +1,23 @@
+const utils = require("../tasks/utils");
 module.exports = {
-	rootDir: "../",
+	rootDir: utils.base,
 	testMatch: [
 		"<rootDir>/tests/spec/**/*.js"
   ],
 	setupTestFrameworkScriptFile: "@createjs/build/tests/setup",
 	collectCoverage: true,
 	collectCoverageFrom: [
-		"src/**/!(main).js"
+		"<rootDir>/src/**/!(main).js"
   ],
 	coveragePathIgnorePatterns: [
 		"/node_modules/",
 		"/tests/"
 	],
-	coverageDirectory: "./tests/coverage/",
+	coverageDirectory: "<rootDir>/tests/coverage/",
 	coverageReporters: [
 		"html",
 		"text"
   ],
 	notify: true,
-	verbose: true,
-	testEnvironmentOptions: {
-		resources: "usable"
-	}
+	verbose: true
 };

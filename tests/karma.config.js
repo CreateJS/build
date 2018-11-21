@@ -1,18 +1,9 @@
-var path = require("path");
-
-// get base and pkg
-var base, pkg;
-try {
-	base = path.resolve(process.cwd(), "../../../");
-	pkg = require(`${base}/package.json`);
-} catch (e) {
-	base = process.platform === "win32" ? process.env.PWD : path.resolve(process.env.PWD, "../../../");
-	pkg = require(`${base}/package.json`);
-}
+const path = require("path");
+const utils = require("../tasks/utils");
 
 // create expect adapter
-var expectPlugin = {
-	"framework:expect": ["factory", function (files) {
+const expectPlugin = {
+	"framework:expect": ["factory", files => {
 		files.unshift({
 			included: true, served: true, watched: false,
 			pattern: path.join(path.dirname(require.resolve("expect")), "build-es5", "index.js")
@@ -21,11 +12,11 @@ var expectPlugin = {
 }
 expectPlugin["framework:expect"][1].$inject = ["config.files"];
 
-module.exports = function (config) {
+module.exports = config => {
 	config.set({
-		basePath: base,
+		basePath: utils.base,
 		frameworks: ["expect"],
 		plugins: [expectPlugin],
-		files: [pkg.browser]
+		files: [utils.pkg.browser]
 	});
 };

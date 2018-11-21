@@ -1,6 +1,4 @@
-// gulp
 const gulp = require("gulp");
-// rollup
 const rollup = require("rollup");
 const babel = require("rollup-plugin-babel");
 const multiEntry = require("rollup-plugin-multi-entry");
@@ -8,11 +6,9 @@ const nodeResolve = require("rollup-plugin-node-resolve");
 const commonjs = require("rollup-plugin-commonjs");
 const cleanup = require("rollup-plugin-cleanup");
 const uglify = require("rollup-plugin-uglify").uglify;
-// utils
 const utils = require("./tasks/utils");
 const template = require("lodash.template");
 const path = require("path");
-// other
 const del = require("del");
 const browserSync = require("browser-sync");
 
