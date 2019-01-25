@@ -47,21 +47,8 @@ module.exports = {
 
 	// return a string representation of the library versions being bundled for exporting
 	parseVersionExport(format, versions) {
-		let str = "";
-		switch (format) {
-			case "iife":
-				str += "var v = exports.versions = exports.versions || {};"
-				break;
-			case "cjs":
-				str += `
-					var cjs = window.createjs = window.createjs || {};
-					var v = cjs.v = cjs.v || {};
-				`;
-				break;
-			default:
-				throw `Unrecognized format '${format}'`;
-		}
-		Object.keys(versions).forEach(v => str += `\nv.${v} = "${versions[v]}";`);
+		let str = "var cjs = window.createjs = window.createjs || {}";
+		Object.keys(versions).forEach(v => str += `\ncjs.${this.prettyName(v)}.version = "${versions[v]}";`);
 		return str;
 	},
 
